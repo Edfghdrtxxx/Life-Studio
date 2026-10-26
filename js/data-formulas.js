@@ -962,6 +962,28 @@ PGRE.FORMULAS = [
     note: "Supplemental — Boltzmann factor, Kahn §4.1.1, p.78."
   },
   {
+    id: "supp-temperature-limits",
+    eq: "supp",
+    topic: "th",
+    tag: "Statistical mechanics",
+    name: "Canonical ensemble: low- and high-temperature limits (supplemental)",
+    front: "A system has $N$ states in all, counting each degenerate state separately, and its ground level has degeneracy $g_0$. As $T \\to 0$ and as $T \\to \\infty$, what are the state probabilities $p_i$, the mean energy $\\langle E\\rangle$, and the entropy $S$?",
+    braced: "\\underbrace{T \\to 0}_{\\text{low temperature}}:\\ \\overbrace{p_i = \\frac{1}{g_0}}^{\\text{ground level only}}, \\qquad \\underbrace{T \\to \\infty}_{\\text{high temperature}}:\\ \\overbrace{p_i = \\frac{1}{N}}^{\\text{every state equal}}",
+    back: "$$T \\to 0:\\ p_i = \\frac{1}{g_0} \\text{ in the ground level}, \\qquad T \\to \\infty:\\ p_i = \\frac{1}{N}$$<p class=\"card-key\"><strong>Low $T$: energy wins, only the ground level. High $T$: entropy wins, every state is equally likely. Count states, not levels.</strong></p><ul class=\"recall-list\"><li><strong>$T \\to 0$:</strong> $\\langle E\\rangle \\to E_0$ and $S \\to k_B\\ln g_0$, which is $0$ for a unique ground state.</li><li><strong>$T \\to \\infty$:</strong> $\\langle E\\rangle \\to \\sum_i g_i E_i / N$, the plain mean over all $N$ states, and $S \\to k_B\\ln N$.</li><li><strong>Infinitely many states</strong> (oscillator, $E_n = n\\epsilon$): as $T \\to \\infty$ every $p_i \\to 0$, while any ratio $p_i/p_j \\to 1$.</li></ul>",
+    note: "Supplemental — Boltzmann factor $p_i = e^{-E_i/k_BT}/Z$, Kahn §4.1.1, p.78. Drill misses: degeneracy left out of $Z$ (levels $-\\epsilon, 0, \\epsilon$ with degeneracies $2, 1, 3$ give $\\langle E\\rangle \\to \\epsilon/6$ as $T \\to \\infty$)."
+  },
+  {
+    id: "supp-hermitian-sign-count",
+    eq: "supp",
+    topic: "qm",
+    tag: "Wavefunctions and operators",
+    name: "Hermitian test by counting derivatives and factors of i (supplemental)",
+    front: "In the position basis, how can you tell in a few seconds whether an operator built from real functions, factors of $i$, and derivatives such as $\\partial/\\partial y$ is Hermitian?",
+    braced: "\\underbrace{\\left(\\partial_y\\right)^\\dagger = -\\partial_y}_{\\substack{\\text{integration by parts}\\\\\\text{flips the sign}}}, \\qquad \\overbrace{i^\\dagger = -i}^{\\substack{\\text{complex conjugate}\\\\\\text{flips the sign}}}",
+    back: "$$\\left(\\partial_y\\right)^\\dagger = -\\partial_y, \\qquad i^\\dagger = -i$$<p class=\"card-key\"><strong>Each derivative and each factor of $i$ flips the sign under the adjoint: an even total is Hermitian, an odd total is anti-Hermitian.</strong></p><ul class=\"recall-list\"><li><strong>Hermitian:</strong> $-i\\hbar\\,\\partial_x$ (one $\\partial$, one $i$), $x\\,\\partial_y^2$ (two $\\partial$), $i\\,\\partial_x^3$ (three $\\partial$, one $i$), real functions such as $xyz$.</li><li><strong>Not Hermitian:</strong> $\\partial_x$, $x^2\\,\\partial_y$, $i\\,\\partial_x^2$, $ix^2$.</li><li><strong>Caveat:</strong> the count holds when the factors commute, such as a function of $x$ times a derivative in $y$. For $x\\,\\partial_x$ the adjoint reverses the order, $(AB)^\\dagger = B^\\dagger A^\\dagger$, so symmetrize: $-\\tfrac{i}{2}\\left(x\\,\\partial_x + \\partial_x\\,x\\right)$ is Hermitian.</li></ul>",
+    note: "Supplemental — Kahn §5.1.1. Integration by parts gives $\\int f^*\\,\\partial_y g = -\\int (\\partial_y f)^*\\,g$ when the wavefunctions vanish at infinity."
+  },
+  {
     id: "supp-oscillator-partition",
     eq: "supp",
     topic: "th",
