@@ -1172,13 +1172,8 @@ PGRE.views.dashboard = (function () {
     var goal = (s.settings && s.settings.dailyTargetMin) || 0;
     var todayMin = Math.round((PGRE.studyTime && PGRE.studyTime.liveTodaySec
       ? PGRE.studyTime.liveTodaySec() : 0) / 60);
-    var weekMin = 0;
-    if (PGRE.studyTime && PGRE.studyTime.daySec) {
-      for (var wi = 0; wi < 7; wi++) {
-        var dk = PGRE.srs.addDays(-wi);
-        weekMin += PGRE.studyTime.daySec(dk) / 60;
-      }
-    }
+    var weekMin = (PGRE.studyTime && PGRE.studyTime.weekSec
+      ? PGRE.studyTime.weekSec() : 0) / 60;
     html += '<div class="ls-grid2">' +
       '<div class="tile"><span class="kicker">Streak</span>' +
         '<div class="big">' + streak + '<small>days · best ' + s.streak.best + '</small></div>' +
