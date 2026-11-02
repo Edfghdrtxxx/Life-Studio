@@ -597,7 +597,7 @@ var STAGES = [
 
   { name: 'where-the-shortcut-stays-out', size: DESKTOP, run: async function (page, h) {
     await h.load({ hash: '#/formulas' });
-    await h.until('!!document.querySelector("#view .flash-tab[data-mode=\"browse\"]")', 'Recall\'s tabs');
+    await h.until('!!document.querySelector(\'#view .flash-tab[data-mode="browse"]\')', 'Recall\'s tabs');
     await page.eval(function () {
       document.querySelector('#view .flash-tab[data-mode="browse"]').click();
     });

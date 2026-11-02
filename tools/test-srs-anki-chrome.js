@@ -272,8 +272,7 @@ async function main() {
     var s = PGRE.store.state;
     s.settings.formulaExamCap = true;
     s.settings.formulaDailyTarget = 1;
-    var d = new Date(); d.setDate(d.getDate() + 14);
-    s.settings.examDate = PGRE.srs.dayStr(d);
+    s.settings.examDate = PGRE.srs.addDays(14);
     s.cards['srs-test-1'] = {
       reps: 1, lapses: 0, interval: 10, ease: 2.5,
       due: PGRE.srs.today(), reviews: 1
