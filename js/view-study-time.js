@@ -292,47 +292,106 @@ PGRE.views.studytime = (function () {
   }
 
 
-  /* ——— Last-28-days daily bar chart (pure-div bars; forecastHTML pattern) ——— */
-  function dailyChartHTML() {
+  /* ——— Other apps (report §14.3): Maimemo seconds per day from the bridge
+     (js/study-sources.js), {} while disconnected. Render reads the shared
+     cache; mount refreshes the two cards when the fetch resolves. ——— */
+  function mmData() {
+    var c = PGRE.studySources && PGRE.studySources.cached && PGRE.studySources.cached();
+    if (c && c.status === 'ok' && c.data) return PGRE.studySources.maimemoSecByDay(c.data);
+    return {};
+  }
+  function mmAny(mmByDay) {
+    for (var k in mmByDay) if (mmByDay[k] > 0) return true;
+    return false;
+  }
+  function paintSources(res) {
+    var daily = document.getElementById('st-daily-slot');
+    var cal = document.getElementById('st-cal-slot');
+    if (!daily && !cal) return;             // the route already changed
+    var mm = (res && res.status === 'ok')
+      ? PGRE.studySources.maimemoSecByDay(res.data) : {};
+    if (daily) daily.innerHTML = dailyChartHTML(mm);
+    if (cal) cal.innerHTML = yearCalendarHTML(mm);
+  }
 
+  /* ——— Last-28-days daily bar chart (pure-div bars; forecastHTML pattern).
+     Studio minutes come from state.studyLog; Maimemo minutes stack on top
+     (js/study-sources.js, `mmByDay` = day-key -> seconds, {} when the bridge
+     has not answered). Every day's tooltip carries both numbers; the printed
+     "studio +Maimemo" pair appears only under today's bar — one pair per
+     column width stays legible where 28 would crowd. ——— */
+  function dailyChartHTML(mmByDay) {
+    mmByDay = mmByDay || {};
     var st = PGRE.studyTime, days = [], max = 1, i;
     var focusByDay = focusSecByDay();
 
     for (i = 27; i >= 0; i--) {
       var key = dayKey(-i);
       var sec = st.daySec(key);
-      if (sec > max) max = sec;
-      days.push({ key: key, sec: sec, ago: i });
+      var mm = mmByDay[key] || 0;
+      if (sec + mm > max) max = sec + mm;
+      days.push({ key: key, sec: sec, mm: mm, ago: i });
     }
     var total = days.reduce(function (a, d) { return a + d.sec; }, 0);
+    var mmTotal = days.reduce(function (a, d) { return a + d.mm; }, 0);
 
     var body;
-    if (total <= 0) {
+    if (total <= 0 && mmTotal <= 0) {
       body = '<p class="muted">No active time logged in the last 28 days — the passive tracker ' +
         'counts seconds as you interact with the app, and the focus timer adds any time you log there.</p>';
     } else {
       var bars = '';
       days.forEach(function (d) {
-        var pctH = Math.round(100 * d.sec / max);
-        var h = d.sec > 0 ? Math.max(4, pctH) : 0;
+        var tot = d.sec + d.mm;
+        var h = tot > 0 ? Math.max(4, Math.round(100 * tot / max)) : 0;
         var isToday = d.ago === 0;
         var cls = 'stbar' + (d.sec > 0 ? (isToday ? ' stbar-today' : '') : ' stbar-zero');
         var dt = new Date(d.key + 'T12:00:00');
         var dayLbl = dt.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-        var totalMin = Math.round(d.sec / 60);
+        var studioMin = Math.round(d.sec / 60);
+        var mmMin = Math.round(d.mm / 60);
+        var totalMin = studioMin + mmMin;
         var line2 = totalMin < 60
           ? totalMin + ' min active'
           : Math.floor(totalMin / 60) + ' h ' + (totalMin % 60) + ' min active';
+        line2 += ' · studio ' + studioMin + ' min' + (mmMin ? ' · Maimemo ' + mmMin + ' min' : '');
         var fm = Math.round((focusByDay[d.key] || 0) / 60);
         if (fm > 0) line2 += ' · ' + fm + ' min focus';
         var x = isToday ? 'today' : (d.ago % 7 === 0 ? (d.ago / 7) + 'w' : '');
+        /* Maimemo's share is the top segment of the same bar; the studio
+           keeps its solid ink (coral today) so the sum reads at a glance. */
+        var bar;
+        if (d.mm > 0) {
+          /* Top segment is Maimemo's share; the studio segment keeps its
+             solid ink (coral today) and drops out entirely at 0 min. */
+          bar = '<div class="stbar-stack" style="height:' + h + '%">' +
+            '<div class="stbar-mm" style="flex:' + Math.round(100 * d.mm / tot) + '"></div>' +
+            (d.sec > 0
+              ? '<div class="' + cls + '" style="flex:' + Math.round(100 * d.sec / tot) + ';height:auto"></div>'
+              : '') +
+            '</div>';
+        } else {
+          bar = '<div class="' + cls + '" style="height:' + h + '%"></div>';
+        }
         bars += '<div class="stbar-col" data-tip="' + PGRE.ui.esc(dayLbl + '\\n' + line2) + '">' +
-          '<div class="' + cls + '" style="height:' + h + '%"></div>' +
+          bar +
+          (mmMin > 0 && isToday
+            ? '<span class="stbar-mm-n">' + studioMin + '\n&#43;' + mmMin + '</span>'
+            : '<span class="stbar-mm-n stbar-mm-n-empty"></span>') +
           '<span class="stbar-x' + (isToday ? ' stbar-x-cur' : '') + '">' + x + '</span></div>';
       });
       body = '<div class="stbar-strip">' + bars + '</div>' +
-        '<p class="muted st-note">Active time each day for the last 28 days — the passive heartbeat ' +
-        'plus any focus-timer time, combined. Today is highlighted.</p>';
+        (mmTotal > 0
+          ? '<div class="stbar-key"><span><i class="st"></i>Studio</span>' +
+            '<span><i class="mm"></i>Maimemo</span>' +
+            '<span class="muted">Obsidian sessions are counted, not timed.</span></div>'
+          : '') +
+        (mmTotal > 0
+          ? '<p class="muted st-note">Studio and Maimemo minutes per day — "studio + Maimemo" is ' +
+            'printed under today\'s bar and in every day\'s tooltip. Studio is the passive heartbeat ' +
+            'plus the focus timer; Maimemo comes from the Mac helper. Today is highlighted.</p>'
+          : '<p class="muted st-note">Active time each day for the last 28 days — the passive heartbeat ' +
+            'plus any focus-timer time, combined. Today is highlighted.</p>');
     }
     return '<div class="card"><h2>Daily activity</h2>' + body + '</div>';
   }
@@ -388,9 +447,10 @@ PGRE.views.studytime = (function () {
     '</div>';
   }
 
-  /* ——— The last 12 months: one square per day from state.studyLog, which
-     keeps every day (design §6.10). In place of the exam runway. ——— */
-  function yearCalendarHTML() {
+  /* ——— The last 12 months: one square per day, studio minutes from
+     state.studyLog plus Maimemo minutes from the bridge (`mmByDay`). ——— */
+  function yearCalendarHTML(mmByDay) {
+    mmByDay = mmByDay || {};
     var st = PGRE.studyTime, s = PGRE.store.state;
     var log = s.studyLog || {};
 
@@ -403,8 +463,10 @@ PGRE.views.studytime = (function () {
     var cells = '', studied = 0, firstKey = dayStr(start), lastKey = dayStr(end);
     for (var d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       var key = dayStr(d);
-      var sec = (typeof log[key] === 'number' ? log[key] : 0) +
+      var studioSec = (typeof log[key] === 'number' ? log[key] : 0) +
         (key === lastKey ? Math.max(0, todayActiveSec() - (log[key] || 0)) : 0);
+      var mmSec = mmByDay[key] || 0;
+      var sec = studioSec + mmSec;
       if (sec > 0) studied++;
       var lvl = 0;
       if (sec > 0) lvl = 1;
@@ -413,16 +475,25 @@ PGRE.views.studytime = (function () {
       if (sec >= 6 * 3600) lvl = 4;
       var dt = new Date(d.getFullYear(), d.getMonth(), d.getDate());
       var lbl = dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-      var tip = sec > 0
-        ? lbl + '\\n' + (sec >= 3600 ? hrs(sec) + ' h' : Math.round(sec / 60) + ' min') + ' active'
-        : lbl + '\\nno study';
+      var tip;
+      if (sec > 0) {
+        tip = lbl + '\\n' + (sec >= 3600 ? hrs(sec) + ' h' : Math.round(sec / 60) + ' min') + ' active';
+        if (mmSec > 0) {
+          tip += ' · studio ' + Math.round(studioSec / 60) +
+            ' min, Maimemo ' + Math.round(mmSec / 60) + ' min';
+        }
+      } else {
+        tip = lbl + '\\nno study';
+      }
       cells += '<i class="' + (lvl ? 'l' + lvl : '') + '" data-tip="' + PGRE.ui.esc(tip) + '"></i>';
     }
     var streak = PGRE.store.liveStreak ? PGRE.store.liveStreak() : 0;
 
     return '<div class="card"><h2>The last 12 months</h2>' +
-      '<p class="muted st-lead">One square per day; darker means more hours, ' +
-      'from the daily study log, which keeps every day.</p>' +
+      '<p class="muted st-lead">One square per day; darker means more hours — ' +
+      (mmAny(mmByDay)
+        ? 'studio and Maimemo minutes summed, both from the daily logs.'
+        : 'from the daily study log, which keeps every day.') + '</p>' +
       '<div class="hm-cal" style="margin-top:10px">' + cells + '</div>' +
       '<p class="meta" style="margin-top:6px">' +
         PGRE.ui.dateRange(firstKey, lastKey) + ' · ' + PGRE.ui.fmt(studied) +
@@ -506,17 +577,27 @@ PGRE.views.studytime = (function () {
       '<p class="muted">Active time from the tab heartbeat and the focus timer. ' +
       'Counted per day, so there is no per-topic split.</p></div>';
 
+    // Slots repaint when the bridge answer arrives (mount → paintSources).
+    var mm = mmData();
     return head +
       tilesHTML() +
       activityTargetHTML() +
-      '<div class="two-col">' + dailyChartHTML() + weeklyStripHTML() + '</div>' +
-      yearCalendarHTML() +
+      '<div class="two-col"><div id="st-daily-slot">' + dailyChartHTML(mm) + '</div>' +
+        weeklyStripHTML() + '</div>' +
+      '<div id="st-cal-slot">' + yearCalendarHTML(mm) + '</div>' +
       '<div class="two-col">' + splitHTML() + recentFocusHTML() + '</div>';
   }
 
   function mount() {
+    // Maimemo minutes for the daily bars and the 12-month calendar; the
+    // bridge not answering paints the same page with studio time only.
+    if (PGRE.studySources && PGRE.studySources.load) {
+      PGRE.studySources.load().then(paintSources);
+    }
+
     var card = document.getElementById('st-active-target');
     if (!card) return;
+
 
     card.addEventListener('click', function (e) {
       var chip = e.target.closest && e.target.closest('[data-atarget]');

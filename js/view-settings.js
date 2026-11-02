@@ -94,6 +94,66 @@ PGRE.views.settings = (function () {
           '<div class="chip-row" id="goal-chips">' + chips + '</div></div>' +
         '</div></div>';
   }
+  /* ——— Other apps (report §14.3/§14.4) ——— */
+
+  /* Connection state for the "Other apps" card: reads the shared
+     js/study-sources.js cache only — the one-time setup never asks for the
+     Maimemo token, which lives in the macOS Keychain and is never typed
+     into or stored by the studio. */
+  function otherAppsStatusHTML() {
+    var ss = PGRE.studySources;
+    var c = ss && ss.cached && ss.cached();
+    if (!c) return '<span class="oa-set-state muted">Checking the status bridge…</span>';
+    if (c.status !== 'ok') {
+      return '<span class="oa-set-state">Not connected — the status bridge did not answer ' +
+        'or has no study-sources file yet.</span>';
+    }
+    var stale = ss.freshness(c.data) === 'stale';
+    var when = ss.fmtUpdated(ss.lastUpdatedAt(c.data)) || 'unknown';
+    var today = ss.entryFor(c.data);
+    var mm = ss.hasMaimemo(today);
+    var nSess = ss.sessionsOf(today).length;
+    var bits = [];
+    bits.push(mm ? 'Maimemo: ' + (typeof today.maimemo.finished === 'number' ? today.maimemo.finished : 0) +
+      ' of ' + (typeof today.maimemo.total === 'number' ? today.maimemo.total : '—') +
+      ' words, ' + ss.fmtMin(ss.maimemoSec(today) / 60)
+      : 'Maimemo: no numbers for today yet — open the app once');
+    bits.push('Obsidian: ' + nSess + ' session' + (nSess === 1 ? '' : 's') + ' today');
+    return '<span class="oa-set-state">' + (stale ? 'No update since ' + PGRE.ui.esc(when) +
+      ' — the helper runs every 120 minutes.' : 'Connected — last update ' + PGRE.ui.esc(when) + '.') +
+      ' <span class="muted">' + PGRE.ui.esc(bits.join(' · ')) + '</span></span>';
+  }
+
+  function paintOtherApps(res) {
+    var el = document.getElementById('oa-set-status');
+    if (el) el.innerHTML = otherAppsStatusHTML();
+  }
+
+  function otherAppsHTML() {
+    return '<div class="card" id="set-other-apps"><span class="kicker">Other apps</span>' +
+      '<h2>Maimemo and Obsidian</h2>' +
+      '<p id="oa-set-status">' + otherAppsStatusHTML() + '</p>' +
+      '<p class="muted">Life Studio can show your Maimemo minutes and words and today’s ' +
+      'Obsidian learning sessions on Today and on Study time. A small helper on this Mac ' +
+      'reads them every 120 minutes through the local status bridge. It reads only: it ' +
+      'writes nothing to Maimemo, Obsidian or this app, and the Maimemo token lives in the ' +
+      'macOS Keychain — it is never typed into or saved by the studio.</p>' +
+      '<div class="set-row"><div><b style="font-weight:500">One-time setup</b>' +
+        '<div class="d"><ol class="oa-steps">' +
+        '<li>In Maimemo, turn on automatic sync, and open the app at least once a day.</li>' +
+        '<li>Get the token in Maimemo: 我的 › 更多设置 › 实验功能 › 开放 API.</li>' +
+        '<li>In Terminal, put the token in the Keychain — it prompts, so the token never ' +
+          'lands in a file or in shell history:<br><code class="oa-cmd">security add-generic-password ' +
+          '-s orbitos-maimemo-token -a maimemo -U -w</code></li>' +
+        '<li>Install the helper’s launch job from the OrbitOS folder; it runs at login and ' +
+          'then every 120 minutes:<br><code class="oa-cmd">mkdir -p ~/Library/LaunchAgents &amp;&amp; ' +
+          'cp 99_System/Services/pgre-status-bridge/com.orbitos.study-sources.plist ' +
+          '~/Library/LaunchAgents/ &amp;&amp; launchctl bootstrap "gui/$(id -u)" ' +
+          '~/Library/LaunchAgents/com.orbitos.study-sources.plist</code></li>' +
+        '</ol>The full guide is in the OrbitOS vault at ' +
+        '<code>99_System/Services/pgre-status-bridge/README.md</code>.</div></div></div>' +
+    '</div>';
+  }
 
   /* ——— Data ——— */
 
@@ -344,9 +404,10 @@ PGRE.views.settings = (function () {
         '<div class="chip-row" style="margin:14px 0">' +
           '<button type="button" class="focus-chip" data-setgoto="set-appearance">Appearance</button>' +
           '<button type="button" class="focus-chip" data-setgoto="set-study">Study</button>' +
+          '<button type="button" class="focus-chip" data-setgoto="set-other-apps">Other apps</button>' +
           '<button type="button" class="focus-chip" data-setgoto="set-data">Data</button>' +
         '</div>' +
-        appearanceHTML() + studyHTML() + dataHTML();
+        appearanceHTML() + studyHTML() + otherAppsHTML() + dataHTML();
     },
     mount: function () {
       document.querySelectorAll('[data-setgoto]').forEach(function (a) {
@@ -355,6 +416,12 @@ PGRE.views.settings = (function () {
           if (el) el.scrollIntoView({ block: 'start' });
         });
       });
+      // Connection state for the "Other apps" card — the shared fetch
+      // resolves 'off' when the bridge does not answer; the card then shows
+      // "Not connected" above the setup steps.
+      if (PGRE.studySources && PGRE.studySources.load) {
+        PGRE.studySources.load().then(paintOtherApps);
+      }
       wireAppearance();
       wireStudy();
       wireData();
