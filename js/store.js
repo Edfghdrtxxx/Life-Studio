@@ -168,6 +168,13 @@ PGRE.store = {
       //     m: was-mature (ivl >= matureDays() at write), n: had-prior-state }
       //     — feeds Memory stats; old rows keep the flag they stored
       cardReviews: [],
+      // Life Studio round 2 — monthly review summary per subject (design
+      // §7.5, decision D6: the ONLY new saved key). When cardReviews rows age
+      // out of the 8000-row cap they fold into here so long-term retention
+      // stats survive: { 'YYYY-MM': { subjectId: { yR, yA, mR, mA } } } —
+      // young/mature reviews and Again counts. Merge rule: max per field
+      // (both tabs may fold the same trimmed rows; max never double-counts).
+      reviewMonths: {},
       // F2 — per-card mnemonic notes: cardId -> { text, updatedAt }
       cardNotes: {},
 
@@ -220,16 +227,38 @@ PGRE.store = {
     if (Array.isArray(disk.sessions)) st.sessions = unionArr(st.sessions || [], disk.sessions, function (s) { return s.id || J(s); });
     if (Array.isArray(disk.exams)) st.exams = unionArr(st.exams || [], disk.exams, function (e) { return e.id || J(e); });
     if (Array.isArray(disk.focusSessions)) st.focusSessions = unionArr(st.focusSessions || [], disk.focusSessions, function (s) { return s.startedAt + '|' + s.endedAt; }, 300);
+    if (isObj(disk.reviewMonths)) {
+      // Monthly per-subject review counters are additive; merge takes the max
+      // per field because two tabs can fold the same trimmed cardReviews rows.
+      st.reviewMonths = isObj(st.reviewMonths) ? st.reviewMonths : {};
+      for (var rm in disk.reviewMonths) {
+        var dm = disk.reviewMonths[rm];
+        if (!isObj(dm)) continue;
+        var lm = st.reviewMonths[rm] || (st.reviewMonths[rm] = {});
+        for (var rs in dm) {
+          var dsub = dm[rs];
+          if (!isObj(dsub)) continue;
+          var lsub = lm[rs] || (lm[rs] = {});
+          ['yR', 'yA', 'mR', 'mA'].forEach(function (f) {
+            var v = dsub[f];
+            if (typeof v === 'number' && v > (lsub[f] || 0)) lsub[f] = v;
+          });
+        }
+      }
+    }
     if (Array.isArray(disk.cardReviews)) {
       st.cardReviews = unionArr(st.cardReviews || [], disk.cardReviews, J);
       // The same 8000-row cap srs.gradeCard keeps. The union puts the
       // sibling's rows after this tab's, so order by day (stable) before
-      // keeping the newest.
+      // keeping the newest. Rows that fall off fold into reviewMonths.
       if (st.cardReviews.length > 8000) {
         st.cardReviews.sort(function (a, b) {
           var da = (a && a.d) || '', db = (b && b.d) || '';
           return da < db ? -1 : (da > db ? 1 : 0);
         });
+        if (PGRE.srs && PGRE.srs.foldReviewRows) {
+          PGRE.srs.foldReviewRows(st.cardReviews.slice(0, st.cardReviews.length - 8000));
+        }
         st.cardReviews = st.cardReviews.slice(st.cardReviews.length - 8000);
       }
     }
@@ -1152,7 +1181,7 @@ PGRE.store = {
   importJSON: function (text) {
     var obj = JSON.parse(text); // throws if invalid
     var isObj = function (v) { return !!v && typeof v === 'object' && !Array.isArray(v); };
-    var err = new Error('Not a Physics GRE backup file.');
+    var err = new Error('Not a Life Studio backup file.');
     if (!isObj(obj) || typeof obj.xp !== 'number' || !isObj(obj.today)) throw err;
     // reject wrong-kind containers up front: they would survive migrate() but
     // save a state the views crash on (absent keys are fine — migrate() fills
