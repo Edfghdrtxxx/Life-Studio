@@ -72,13 +72,15 @@ PGRE.views = PGRE.views || {};
     return '<span class="duechip' + (d <= 0 ? ' now' : '') + '">' + esc(label) + '</span>';
   }
 
-  /* Plain-text one-line card name for list rows (front may carry markup). */
+  /* One-line card label for list rows. Named cards keep their name (escaped by
+     the caller); others fall back to the front — kept as $…$ source so the
+     caller's formulaHTML pass typesets it like every other card list. */
   function cardLine(c) {
     if (c.name) return c.name;
     var txt = PGRE.formulaCheckin && PGRE.formulaCheckin.stripHTML
       ? PGRE.formulaCheckin.stripHTML(c.front || '')
       : String(c.front || '').replace(/<[^>]*>/g, '');
-    txt = txt.replace(/[$]/g, '').replace(/\s+/g, ' ').trim();
+    txt = txt.replace(/\s+/g, ' ').trim();
     return txt || c.id;
   }
 
@@ -211,12 +213,14 @@ PGRE.views = PGRE.views || {};
   }
 
   /* Card rows shared by the home strip and the cards sub-page. `rows` already
-     sorted (due-first). */
+     sorted (due-first). Named cards keep their escaped name; front-text labels
+     go through formulaTextHTML so $…$ typesets (mount runs typesetMath). */
   function cardRowsHTML(cards) {
+    var fHTML = PGRE.formulaTextHTML || function (t) { return esc(t); };
     return '<ul class="list subj-card-list">' + cards.map(function (c) {
       return '<li data-card="' + esc(c.id) + '" role="button" tabindex="0">' +
         '<span class="mono-chip">' + esc((PGRE.subjectById(PGRE.cardSubject(c)) || {}).code || '') + '</span>' +
-        '<span class="grow clamp">' + esc(cardLine(c)) + '</span>' +
+        '<span class="grow clamp">' + (c.name ? esc(c.name) : fHTML(cardLine(c))) + '</span>' +
         cardDueChip(c) + '</li>';
     }).join('') + '</ul>';
   }

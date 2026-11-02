@@ -557,7 +557,7 @@ PGRE.views.formulas = (function () {
       shown++;
       return '<li class="' + (u.id === editing ? 'on' : '') + '" data-edit="' + ui.esc(u.id) +
         '" role="button" tabindex="0"><span class="id"><span>' + ui.esc(u.id) + '</span>' +
-        editorDueChip(u) + '</span><span class="clamp">' + ui.esc(cardName(u)) + '</span></li>';
+        editorDueChip(u) + '</span><span class="clamp">' + formulaHTML(cardName(u) || u.id) + '</span></li>';
     }
     var todayCards = all.filter(function (u) {
       return keep(u) && String(u.createdAt || '').slice(0, 10) === today;

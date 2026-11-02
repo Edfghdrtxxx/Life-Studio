@@ -1451,7 +1451,7 @@ PGRE.views.dashboard = (function () {
       if (st && !PGRE.srs.isSuspended(c.id) && !PGRE.srs.studiedToday(st) &&
           PGRE.srs.daysUntil(st.due) <= 0) counts[c.topic].due++;
     });
-    return '<div class="card"><div class="sec-title"><span class="t">Topics</span></div>' +
+    return '<div class="card" style="margin-top:16px"><div class="sec-title"><span class="t">Topics</span></div>' +
       '<div class="meta">The nine topic pages, without exam weights. Cards and cards due today.</div>' +
       '<div class="topic-strip">' +
       PGRE.TOPICS.map(function (t) {
