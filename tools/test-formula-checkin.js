@@ -244,7 +244,7 @@ var flashSrc = fs.readFileSync(path.join(root, 'js', 'flashmodes.js'), 'utf8');
 var storeSrc = fs.readFileSync(path.join(root, 'js', 'store.js'), 'utf8');
 var indexSrc = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 assert(/formulaCheckIn\.record/.test(viewSrc), 'view-formulas settleStudy calls formulaCheckIn.record');
-assert(/stripHTML/.test(viewSrc), 'view-formulas portal surfaces stripHTML');
+assert(/formulaCheckIn\.status/.test(viewSrc), 'view-formulas portal footnote reads check-in status');
 assert(/celebrateHTML/.test(viewSrc), 'view-formulas summary uses celebrateHTML');
 assert(/formulaCheckIn\.record/.test(flashSrc), 'flashmodes awardReviewXP calls formulaCheckIn.record');
 assert(/checkInSummaryHTML/.test(flashSrc), 'flashmodes summaries wire check-in feedback');

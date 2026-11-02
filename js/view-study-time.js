@@ -11,9 +11,13 @@ window.PGRE = window.PGRE || {};
 PGRE.views = PGRE.views || {};
 
 PGRE.views.studytime = (function () {
-  var WEEK_H = 20;                 // weekly intensive target (hours)
-  /* Life Studio (PR 126): the exam is sat — the 150 h "Until exam" horizon
-     bar and its helpers were removed; the countdown lives on Study plan. */
+  /* The weekly line is the daily goal times 7 (design §6.10); when the goal
+     is off there is no weekly line. */
+  function weeklyGoalH() {
+    var n = parseInt(PGRE.store.state.settings && PGRE.store.state.settings.dailyTargetMin, 10);
+    if (!n || n <= 0) return 0;
+    return Math.round(n * 7 / 60);
+  }
 
   /* ——— Local date helpers (same Monday-based convention as js/study-time.js) ——— */
   function pad2(n) { return String(n).padStart(2, '0'); }
@@ -103,8 +107,10 @@ PGRE.views.studytime = (function () {
     var ts = s.timerStats || { sessions: 0, seconds: 0 };
 
     return '<div class="stat-row st-stats">' +
-      ui.statTile('Today', todayDisp + '<span class="stat-unit"> min</span>', 'active in this tab') +
-      ui.statTile('This week', hrs(st.weekSec()) + '<span class="stat-unit"> h</span>', 'of the ' + WEEK_H + ' h target') +
+      ui.statTile('Today', todayDisp + '<span class="stat-unit"> min</span>',
+        (dailyTargetMin() ? 'of the ' + dailyTargetMin() + ' min goal' : 'active in this tab')) +
+      ui.statTile('This week', hrs(st.weekSec()) + '<span class="stat-unit"> h</span>',
+        (weeklyGoalH() ? 'of ' + weeklyGoalH() + ' h (goal × 7)' : 'total active time')) +
       ui.statTile('Last 30 days', hrs(total30) + '<span class="stat-unit"> h</span>', 'total active time') +
       ui.statTile('Daily average', hrs(avg30Sec) + '<span class="stat-unit"> h</span>', 'per day, last 30 d') +
       ui.statTile('Best day', bestVal, bestSub) +
@@ -163,18 +169,20 @@ PGRE.views.studytime = (function () {
   }
 
   function weeklyBandHTML() {
+    var goalH = weeklyGoalH();
+    if (!goalH) return '';
     var weekSec = weekActiveSec();
     var weekH = weekSec / 3600;
-    var scaleH = Math.max(WEEK_H, weekH);
+    var scaleH = Math.max(goalH, weekH);
     var fillPct = Math.min(100, 100 * weekH / scaleH);
-    var markPct = 100 * WEEK_H / scaleH;
+    var markPct = 100 * goalH / scaleH;
     var weekLabel = hrs(weekSec);
-    var remainH = Math.max(0, WEEK_H - weekH);
-    var state = weekH > WEEK_H + 0.05 ? 'above'
+    var remainH = Math.max(0, goalH - weekH);
+    var state = weekH > goalH + 0.05 ? 'above'
       : (remainH <= 0.05 ? 'met' : 'go');
-    var status = progressLine('This week', weekLabel, String(WEEK_H), 'h',
+    var status = progressLine('This week', weekLabel, String(goalH), 'h',
       remainH.toFixed(1), state);
-    var tip = 'This week\\n' + weekLabel + ' of ' + WEEK_H + ' h' +
+    var tip = 'This week\\n' + weekLabel + ' of ' + goalH + ' h' +
       (state === 'go' ? ' · ' + remainH.toFixed(1) + ' h to go' : ' · ' +
         (state === 'met' ? 'target met' : 'above target'));
     return '<div class="st-at-meter" data-tip="' + PGRE.ui.esc(tip) + '">' +
@@ -183,6 +191,8 @@ PGRE.views.studytime = (function () {
     '</div>' +
     '<div class="challenge-prog">' + PGRE.ui.esc(status) + '</div>';
   }
+
+
 
   function activityTargetProgressHTML(targetMin, doneSec, timerOn) {
     var html;
@@ -224,7 +234,7 @@ PGRE.views.studytime = (function () {
   }
 
   function activityTargetChipsHTML(targetMin) {
-    var presets = [60, 120, 180];
+    var presets = [60, 120, 180, 300];
     var html = '<button type="button" class="focus-chip' + (targetMin === 0 ? ' active' : '') +
       '" data-atarget="0">Off</button>';
     presets.forEach(function (m) {
@@ -248,7 +258,7 @@ PGRE.views.studytime = (function () {
       ? Math.ceil(Math.max(0, targetMin * 60 - doneSec) / 60) : 0;
     return '<div class="card" id="st-active-target">' +
       '<h2>Daily activity target</h2>' +
-      '<p class="muted st-lead">Active minutes today — tab activity plus the focus timer — against a goal you pick. Below: this week’s 20 h target.</p>' +
+      '<p class="muted st-lead">Active minutes today — tab activity plus the focus timer — against a goal you pick. Below: this week against the goal times 7. The same picker is in Settings ▸ Study.</p>' +
       '<div id="st-at-progress">' + activityTargetProgressHTML(targetMin, doneSec, timerOn) + '</div>' +
       '<div class="chip-row" id="st-at-chips">' + activityTargetChipsHTML(targetMin) + '</div>' +
       '<div class="st-at-action" id="st-at-action">' +
@@ -328,28 +338,32 @@ PGRE.views.studytime = (function () {
   }
 
 
-  /* ——— Weekly totals — last 8 Monday-based weeks, marker at the 20 h target ——— */
+  /* ——— Weekly totals — last 8 Monday-based weeks, marker at goal × 7 ——— */
   function weeklyStripHTML() {
-    var weeks = [], scale = WEEK_H * 3600, w;
+    var goalH = weeklyGoalH();
+    var goalSec = goalH * 3600;
+    var weeks = [], scale = Math.max(goalSec, 1), w;
     for (w = 7; w >= 0; w--) {
       var sec = weekTotalSec(w);
       if (sec > scale) scale = sec;
       weeks.push({ sec: sec, mon: weekMonday(w), current: w === 0 });
     }
-    var markBottom = 100 * WEEK_H * 3600 / scale;
+    var markBottom = goalSec > 0 ? 100 * goalSec / scale : 0;
 
     var bars = '', labs = '';
     weeks.forEach(function (wk) {
       var hh = hrs(wk.sec);
       var pctH = wk.sec > 0 ? Math.max(4, Math.round(100 * wk.sec / scale)) : 0;
-      var met = wk.sec >= WEEK_H * 3600;
+      var met = goalSec > 0 && wk.sec >= goalSec;
       var cls = 'stweek-bar' + (met ? ' stweek-met' : '') + (wk.current ? ' stweek-current' : '');
       var sun = new Date(wk.mon.getFullYear(), wk.mon.getMonth(), wk.mon.getDate() + 6);
       var range = PGRE.ui.dateRange(dayStr(wk.mon), dayStr(sun));
       var line2 = hh + ' h active';
       if (wk.current) line2 += ' · in progress';
-      else if (met) line2 += ' · on target';
-      else line2 += ' · ' + (WEEK_H - wk.sec / 3600).toFixed(1) + ' h under 20 h';
+      else if (goalSec > 0) {
+        line2 += met ? ' · on target'
+          : ' · ' + ((goalSec - wk.sec) / 3600).toFixed(1) + ' h under ' + goalH + ' h';
+      }
       bars += '<div class="stweek-col" data-tip="' + PGRE.ui.esc('Week of ' + range + '\\n' + line2) + '">' +
         '<div class="' + cls + '" style="height:' + pctH + '%"></div></div>';
       labs += '<div class="stweek-lab">' +
@@ -361,14 +375,60 @@ PGRE.views.studytime = (function () {
     return '<div class="card"><h2>Weekly totals</h2>' +
       '<div class="stweek">' +
         '<div class="stweek-plot">' +
-          '<div class="stweek-mark" style="bottom:' + markBottom.toFixed(1) + '%"></div>' +
+          (goalSec > 0 ? '<div class="stweek-mark" style="bottom:' + markBottom.toFixed(1) + '%"></div>' : '') +
           bars +
         '</div>' +
         '<div class="stweek-labels">' + labs + '</div>' +
       '</div>' +
-      '<p class="muted st-note">Total active hours per week (Mon–Sun) for the last 8 weeks. The line marks ' +
-      'the 20 h weekly target; bars that reach it are tinted. This week is still in progress.</p>' +
+      '<p class="muted st-note">Hours per week, Monday to Sunday, last 8 weeks. ' +
+      (goalSec > 0
+        ? 'The dashed line is the daily goal times 7 (' + goalH + ' h at ' + dailyTargetMin() + ' min).'
+        : 'No daily goal is set, so there is no weekly line.') +
+      ' This week is still in progress.</p>' +
     '</div>';
+  }
+
+  /* ——— The last 12 months: one square per day from state.studyLog, which
+     keeps every day (design §6.10). In place of the exam runway. ——— */
+  function yearCalendarHTML() {
+    var st = PGRE.studyTime, s = PGRE.store.state;
+    var log = s.studyLog || {};
+
+    // The grid is column-first weeks (grid-auto-flow: column), so the walk
+    // starts on the Monday of the week 52 weeks back.
+    var end = new Date();
+    var start = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    start.setDate(start.getDate() - ((start.getDay() + 6) % 7) - 7 * 51);
+
+    var cells = '', studied = 0, firstKey = dayStr(start), lastKey = dayStr(end);
+    for (var d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      var key = dayStr(d);
+      var sec = (typeof log[key] === 'number' ? log[key] : 0) +
+        (key === lastKey ? Math.max(0, todayActiveSec() - (log[key] || 0)) : 0);
+      if (sec > 0) studied++;
+      var lvl = 0;
+      if (sec > 0) lvl = 1;
+      if (sec >= 3600) lvl = 2;
+      if (sec >= 3 * 3600) lvl = 3;
+      if (sec >= 6 * 3600) lvl = 4;
+      var dt = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      var lbl = dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      var tip = sec > 0
+        ? lbl + '\\n' + (sec >= 3600 ? hrs(sec) + ' h' : Math.round(sec / 60) + ' min') + ' active'
+        : lbl + '\\nno study';
+      cells += '<i class="' + (lvl ? 'l' + lvl : '') + '" data-tip="' + PGRE.ui.esc(tip) + '"></i>';
+    }
+    var streak = PGRE.store.liveStreak ? PGRE.store.liveStreak() : 0;
+
+    return '<div class="card"><h2>The last 12 months</h2>' +
+      '<p class="muted st-lead">One square per day; darker means more hours, ' +
+      'from the daily study log, which keeps every day.</p>' +
+      '<div class="hm-cal" style="margin-top:10px">' + cells + '</div>' +
+      '<p class="meta" style="margin-top:6px">' +
+        PGRE.ui.dateRange(firstKey, lastKey) + ' · ' + PGRE.ui.fmt(studied) +
+        ' day' + (studied === 1 ? '' : 's') + ' studied' +
+        (streak ? ' · streak ' + streak + ' day' + (streak === 1 ? '' : 's') : '') +
+      '</p></div>';
   }
 
   /* ——— Focus vs. app-activity split over the last 30 days ——— */
@@ -443,13 +503,14 @@ PGRE.views.studytime = (function () {
 
   function render() {
     var head = '<div class="card page-head"><h1>Study time</h1>' +
-      '<p class="muted">Active minutes, weekly hours against the 20 h target, streaks and ' +
-      'focus-timer time. Counted per day, so there is no per-topic split.</p></div>';
+      '<p class="muted">Active time from the tab heartbeat and the focus timer. ' +
+      'Counted per day, so there is no per-topic split.</p></div>';
 
     return head +
       tilesHTML() +
       activityTargetHTML() +
       '<div class="two-col">' + dailyChartHTML() + weeklyStripHTML() + '</div>' +
+      yearCalendarHTML() +
       '<div class="two-col">' + splitHTML() + recentFocusHTML() + '</div>';
   }
 

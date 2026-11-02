@@ -601,7 +601,7 @@ PGRE.views.mistakes = (function () {
     var topicName = topicFilter !== 'all'
       ? ((PGRE.topicById(topicFilter) || {}).name || topicFilter)
       : '';
-    var html = '<header class="ps-head"><h1>Physics GRE — Mistake Book</h1>' +
+    var html = '<header class="ps-head"><h1>Physics mistake book</h1>' +
       '<p class="ps-sub">' + open.length + ' entr' + (open.length === 1 ? 'y' : 'ies') +
       (topicName ? ' · ' + PGRE.ui.esc(topicName) : '') +
       ' · printed ' + printDate() + '</p></header>';

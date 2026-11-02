@@ -783,7 +783,7 @@ PGRE.views.practice = (function () {
     var html = '<div class="card practice-card practice-resume">' +
       '<h1>Learn transfer</h1>' +
       '<p class="muted">' + PGRE.ui.esc(label) + '</p>' +
-      '<p>Three targeted Physics GRE questions are ready. Start when you are ready to answer them in Prep Studio.</p>' +
+      '<p>Three targeted Physics GRE questions are ready. Start when you are ready to answer them in Life Studio.</p>' +
       '<div class="btn-row">' +
       '<button class="btn btn-primary" id="learn-start-btn">Start transfer</button>' +
       '<a class="btn btn-ghost" href="#/">Not now</a>' +
@@ -1427,8 +1427,8 @@ PGRE.views.practice = (function () {
       intensityLineHTML('work', 'Mistake book today', work.mocks.length ? 'full mock submitted' : 'retakes',
         work.value + (work.threshold == null ? '' : ' / ' + work.threshold), work.band,
         work.band ? null : 'No target') +
-      // data-dash-focus: the dashboard lands on this card, not on its first card
-      '<a class="intensity-summary-link" href="#/" data-dash-focus="intensity-card">Intensity on the dashboard →</a>' +
+      // data-dash-focus: the archive page lands on this card, not on its top
+      '<a class="intensity-summary-link" href="#/plan" data-dash-focus="intensity-card">Intensity in the exam archive →</a>' +
     '</div>';
   }
 

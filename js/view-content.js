@@ -211,7 +211,9 @@ PGRE.views.library = (function () {
     render: function () {
       return '' +
       '<div class="card page-head"><h1>Library</h1>' +
-        '<p class="muted">Everything stays on this machine: progress in localStorage, book content in IndexedDB. Nothing is sent anywhere.</p>' +
+        '<p class="muted">The physics book and handouts live here — imported markdown chapters and ' +
+        'PDFs in IndexedDB, on this machine only. Data controls (export, restore, disk backup, ' +
+        'resets) moved to <a href="#/settings">Settings › Data</a>.</p>' +
         '<div id="dropzone" class="dropzone">' +
           '<p><strong>Drop the book markdown or a PDF here</strong> (.md / .txt / .pdf)</p>' +
           '<p class="muted">or</p>' +
@@ -219,42 +221,7 @@ PGRE.views.library = (function () {
           '<input type="file" id="file-input" accept=".md,.markdown,.txt,.pdf" hidden>' +
         '</div>' +
       '</div>' +
-      '<div id="files-box"></div>' +
-      '<div class="card"><h2>Your data</h2>' +
-        '<p class="muted">Export writes attempts, formula cards and intervals, the mistake book, mock sittings, and notes. Imported files (Library PDFs and chapters) are not included.</p>' +
-        '<div class="btn-row">' +
-          '<button class="btn btn-ghost" id="export-btn">Export progress</button>' +
-          '<button class="btn btn-ghost" id="import-progress-btn">Restore from backup…</button>' +
-          '<button class="btn btn-ghost" id="restore-backup-btn">Restore last browser safety copy</button>' +
-          '<input type="file" id="progress-input" accept=".json" hidden>' +
-          '<button class="btn btn-ghost" id="reset-formulas-btn">Reset formula cards</button>' +
-        '</div>' +
-      '</div>' +
-      '<div class="card" id="disk-backup-card"><h2>Disk backup</h2>' +
-        '<p class="muted">Copies committed progress to versioned files on this Mac, outside the browser. A failed copy never undoes a grade.</p>' +
-        '<p id="backup-status" class="muted"></p>' +
-        '<p id="backup-warning" class="backup-warning" hidden></p>' +
-        '<label class="backup-token-label" for="backup-token-input">Backup token</label>' +
-        '<input type="password" id="backup-token-input" class="exam-date-input backup-token-input" autocomplete="off">' +
-        '<div class="btn-row">' +
-          '<button class="btn btn-ghost" id="backup-now-btn" type="button">Back up now</button>' +
-          '<button class="btn btn-ghost" id="backup-refresh-btn" type="button">Refresh list</button>' +
-        '</div>' +
-        '<div id="backup-list"></div>' +
-        '<div class="danger-confirm" id="backup-restore-confirm" hidden></div>' +
-      '</div>' +
-      '<div class="card danger-zone"><h2>Danger zone</h2>' +
-        '<p class="muted">Erases every bit of progress on this machine: XP, achievements, streaks, ' +
-        'the mistake book and plan check-offs. There is no undo. Export a backup first if in doubt.</p>' +
-        '<div class="btn-row" id="reset-row">' +
-          '<button class="btn btn-danger-ghost" id="reset-btn">Reset all progress</button>' +
-        '</div>' +
-        '<div class="btn-row danger-confirm" id="reset-confirm" hidden>' +
-          '<span class="danger-confirm-text">Erase all progress on this machine?</span>' +
-          '<button class="btn btn-danger" id="reset-yes">Yes, erase everything</button>' +
-          '<button class="btn btn-ghost" id="reset-no">Cancel</button>' +
-        '</div>' +
-      '</div>';
+      '<div id="files-box"></div>';
     },
 
     mount: function () {
@@ -275,94 +242,6 @@ PGRE.views.library = (function () {
       });
       dz.addEventListener('drop', function (e) {
         if (e.dataTransfer.files.length) importFile(e.dataTransfer.files[0]);
-      });
-
-      document.getElementById('export-btn').addEventListener('click', function () {
-        var blob = new Blob([PGRE.store.exportJSON()], { type: 'application/json' });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = 'physics-gre-progress-' + PGRE.store.today() + '.json';
-        a.click();
-        // revoke later — a synchronous revoke can abort the download in some browsers
-        setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
-      });
-
-      var pInput = document.getElementById('progress-input');
-      document.getElementById('import-progress-btn').addEventListener('click', function () { pInput.click(); });
-      pInput.addEventListener('change', function () {
-        if (!pInput.files.length) return;
-        var r = new FileReader();
-        r.onload = function () {
-          try {
-            PGRE.store.importJSON(String(r.result));
-            if (PGRE.store._persistFailed) {
-              PGRE.toast('Backup loaded into this tab, but saving still fails — it is not on disk yet.', 'error', true);
-              return;
-            }
-            var raw = null;
-            try { raw = localStorage.getItem(PGRE.store.KEY); } catch (eRead) { raw = null; }
-            if (!raw) {
-              PGRE.toast('Restore failed: saved progress could not be read back.', 'error');
-              return;
-            }
-            PGRE.applyTheme(PGRE.store.state.settings.theme);
-            PGRE.toast('Progress restored.', 'info');
-            PGRE.route();
-          } catch (e) {
-            PGRE.toast('Restore failed: ' + PGRE.ui.esc(e.message), 'error');
-          }
-        };
-        r.readAsText(pInput.files[0]);
-        pInput.value = '';
-      });
-
-      var rbBtn = document.getElementById('restore-backup-btn');
-      if (rbBtn) rbBtn.addEventListener('click', function () {
-        if (!confirm('Replace the current progress with the last browser safety copy? Progress saved after that copy will be lost.')) return;
-        var ok = typeof PGRE.store.restoreBackup === 'function' && PGRE.store.restoreBackup();
-        if (ok && PGRE.store._persistFailed) {
-          PGRE.toast('Backup loaded into this tab, but saving still fails — it is not on disk yet.', 'error', true);
-        } else if (ok) {
-          PGRE.applyTheme(PGRE.store.state.settings.theme);
-          PGRE.toast('Backup restored.', 'info');
-          location.hash = '#/';
-        } else {
-          PGRE.toast('No automatic backup found.');
-        }
-      });
-
-      if (PGRE.backup && typeof PGRE.backup.wireLibrary === 'function') {
-        PGRE.backup.wireLibrary(document.getElementById('disk-backup-card'));
-      }
-
-      var rfBtn = document.getElementById('reset-formulas-btn');
-      if (rfBtn) rfBtn.addEventListener('click', function () {
-        if (confirm('Reset all formula flashcards to scratch? Exam scores and practice question attempts will be kept.')) {
-          PGRE.store.resetFormulaCards();
-          if (PGRE.refreshNavBadges) PGRE.refreshNavBadges();
-          PGRE.toast('Formula cards reset to new.', 'info');
-        }
-      });
-
-      // Two-step, inline: the first click only swaps the button for an explicit
-      // confirm row, so a stray click never erases anything and no browser
-      // dialog is needed.
-      var resetRow = document.getElementById('reset-row');
-      var resetConfirm = document.getElementById('reset-confirm');
-      function showResetConfirm(on) {
-        resetRow.hidden = on;
-        resetConfirm.hidden = !on;
-        if (on) document.getElementById('reset-yes').focus();
-        else document.getElementById('reset-btn').focus();
-      }
-      document.getElementById('reset-btn').addEventListener('click', function () { showResetConfirm(true); });
-      document.getElementById('reset-no').addEventListener('click', function () { showResetConfirm(false); });
-      document.getElementById('reset-yes').addEventListener('click', function () {
-        PGRE.store.reset();
-        PGRE.applyTheme(PGRE.store.state.settings.theme);
-        PGRE.toast('Progress reset.', 'info');
-        PGRE.route();
       });
     }
   };

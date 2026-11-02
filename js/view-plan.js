@@ -50,10 +50,23 @@ PGRE.views.plan = (function () {
     return { done: done, total: total, pct: total ? Math.round(100 * done / total) : 0 };
   }
 
+  function fmtSat(iso) {
+    var d = new Date(iso + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  }
+  function fmtDate(iso) {
+    var d = new Date(iso);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  /* The exam archive (design §6.11): the prep months, kept as they were.
+     Review plan first, then mock sittings, readiness, intensity folded
+     shut, the exam date as text. Nothing here asks for work. */
   function body() {
     var ui = PGRE.ui, g = PGRE.gamify;
     var today = PGRE.store.today();
-    var days = g.daysToExam();
+    var s = PGRE.store.state;
+    var examIso = s.settings && s.settings.examDate;
 
     var allTasks = 0, allDone = 0, seen = {};
     PGRE.PLAN.forEach(function (ph) {
@@ -67,19 +80,28 @@ PGRE.views.plan = (function () {
       });
     });
 
-    var html = '<div class="card hero page-head">' +
-      '<div class="hero-left"><h1>Review plan</h1>' +
-      '<p class="muted">Sep 14 → November 1, 2026 · 7 live weeks · ~16 h/wk: 5 timed sets, 6 formula sessions, 2 extras · checkpoint Oct 4 · intact mocks Oct 11 / 18 / 25 · exam-week taper</p>' +
-      ui.meter(100 * allDone / Math.max(1, allTasks), '', {
-        word: 'complete', meta: allDone + ' of ' + allTasks + ' tasks'
-      }) + '</div>' +
-      '<div class="hero-right"><div class="countdown"><div class="countdown-num">' + days + '</div>' +
-      '<div class="countdown-label">day' + (days === 1 ? '' : 's') + ' to go</div></div></div></div>';
-    // Life Studio: the countdown-era surfaces live here behind the More
-    // menu — the dashboard no longer shows them. The runway is the same
-    // week-track the dashboard used to render (PGRE.planRunwayHTML below).
-    html += PGRE.planRunwayHTML ? PGRE.planRunwayHTML() : '';
+    var html = '<span class="kicker">Physics · Exam archive</span>' +
+      '<h1 class="h1 sm">GRE Physics</h1>' +
+      '<p class="lead">' + (examIso
+        ? 'Sat ' + ui.esc(fmtSat(examIso)) + '. The prep months, kept as they were. Nothing here asks for work.'
+        : 'The prep months, kept as they were. Nothing here asks for work.') + '</p>';
 
+    // Review plan: totals and the runway stay visible; the week cards sit
+    // behind a toggle since the plan is done.
+    var firstStart = PGRE.PLAN[0] && PGRE.PLAN[0].weeks[0] ? PGRE.PLAN[0].weeks[0].start : '';
+    var lastEnd = '';
+    PGRE.PLAN.forEach(function (ph) {
+      ph.weeks.forEach(function (w) { if (w.end > lastEnd) lastEnd = w.end; });
+    });
+    html += '<div class="card" style="margin-top:16px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">' +
+      '<div><div class="sec-title" style="margin:0"><span class="t">Review plan</span></div>' +
+      '<div class="meta">' + ui.esc(ui.dateRange(firstStart, lastEnd)) + ' · ' +
+        allDone + ' of ' + allTasks + ' tasks done</div></div>' +
+      '<span class="chip">' + (examIso ? 'Exam sat' : 'In progress') + '</span></div>' +
+      (PGRE.planRunwayHTML ? PGRE.planRunwayHTML() : '') +
+      '<div class="btn-row"><button class="btn btn-ghost btn-sm" id="plan-weeks-toggle" ' +
+        'aria-expanded="false" aria-controls="plan-weeks">Open the plan weeks</button></div>' +
+      '<div id="plan-weeks" hidden>';
 
     PGRE.PLAN.forEach(function (phase) {
       var phTasks = 0, phDone = 0;
@@ -121,8 +143,6 @@ PGRE.views.plan = (function () {
             '<span class="task-meta">' + t.hours + ' h</span></li>';
         });
         html += '</ul>';
-        // F4: each week names the topics it covers — offer a one-click jump to
-        // those topic portals (the hub where you read up and drill them).
         if (w.topics && w.topics.length) {
           html += '<div class="week-links"><span class="week-links-label">Study:</span>';
           w.topics.forEach(function (tid) {
@@ -135,6 +155,51 @@ PGRE.views.plan = (function () {
       });
       html += '</div>';
     });
+    html += '</div></div>';
+
+    // Mock exams: past sittings first, newest on top (§6.11).
+    var hist = (PGRE.examEngine && PGRE.examEngine.history) ? PGRE.examEngine.history() : [];
+    var list = hist.slice(0, 5).map(function (x) {
+      var pct = x.total ? Math.round(100 * x.raw / x.total) : 0;
+      var scale = PGRE.examEngine.scaleDisplay ? PGRE.examEngine.scaleDisplay(x)
+        : { scaled: x.scaledEst, official: !!x.scaledOfficial };
+      return '<a class="exam-hist-row" href="#/exam/review/' + ui.esc(x.id) + '">' +
+        '<span class="exam-hist-when">' + ui.esc(fmtDate(x.submittedAt)) + '</span>' +
+        '<span class="chip">' + ui.esc(PGRE.examEngine.FORMAT_META[x.format].label) + '</span>' +
+        '<span class="exam-hist-score">' + x.raw + ' / ' + x.total + ' · ' + pct + '%</span>' +
+        '<span class="exam-hist-scaled">' + (scale.official ? '' : '~') + scale.scaled + ' scaled</span>' +
+        '</a>';
+    }).join('');
+    html += '<div class="ls-grid2">' +
+      '<div class="card"><div class="sec-title" style="margin:0"><span class="t">Mock exams</span></div>' +
+        (list ? '<div class="exam-hist-rows" style="margin-top:10px">' + list + '</div>'
+             : '<p class="muted" style="margin-top:10px">No submitted sittings on this profile.</p>') +
+        '<div class="btn-row"><a class="btn btn-ghost btn-sm" href="#/exam">All sittings and replays</a></div></div>' +
+      ((PGRE.views.dashboard && PGRE.views.dashboard.readinessCard)
+        ? PGRE.views.dashboard.readinessCard() : '') +
+      '</div>';
+
+    // Intensity, folded shut; the Today wiring still works inside a details.
+    if (PGRE.views.dashboard && PGRE.views.dashboard.intensityCardHTML) {
+      html += '<details class="card"><summary class="sec-title" style="margin:0;cursor:pointer">' +
+        '<span class="t">Intensity</span></summary>' +
+        '<p class="muted" style="margin-top:8px">The banded study-intensity card from Today. ' +
+        'The agent status summary keeps computing it.</p>' +
+        '<div style="margin-top:10px">' + PGRE.views.dashboard.intensityCardHTML() + '</div></details>';
+    }
+
+    // Exam date as text, with the reason the control is gone (A44).
+    if (examIso) {
+      var passed = examIso <= today;
+      html += '<div class="card"><div class="sec-title" style="margin:0"><span class="t">Exam date</span></div>' +
+        '<p class="muted" style="margin-top:8px">' + ui.esc(fmtSat(examIso)) + '. ' +
+        (passed
+          ? 'Until exam day the scheduler kept every card interval short of this date; that cap stopped on ' +
+            ui.esc(fmtSat(examIso)) + ', so intervals now grow freely. The date control is not shown any more, ' +
+            'because a future date would shorten every subject’s intervals.'
+          : 'The scheduler keeps every card interval short of this date.') +
+        '</p></div>';
+    }
     return html;
   }
 
@@ -250,6 +315,12 @@ PGRE.views.plan = (function () {
     if (!info || !info.week || !info.at || Date.now() - info.at > 6 * 3600000) return;
     var details = document.querySelector('#plan-root details[data-week="' + CSS.escape(info.week) + '"]');
     if (!details) return;
+    var weeksBox = document.getElementById('plan-weeks');
+    if (weeksBox) {
+      weeksBox.hidden = false;
+      var tg = document.getElementById('plan-weeks-toggle');
+      if (tg) { tg.setAttribute('aria-expanded', 'true'); tg.textContent = 'Hide the plan weeks'; }
+    }
     details.open = true;
     requestAnimationFrame(function () {
       details.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -270,7 +341,19 @@ PGRE.views.plan = (function () {
     mount: function () {
       PGRE.typesetMath(document.getElementById('plan-root'));
       wire();
+      var tg = document.getElementById('plan-weeks-toggle');
+      if (tg) tg.addEventListener('click', function () {
+        var box = document.getElementById('plan-weeks');
+        if (!box) return;
+        var open = box.hidden;
+        box.hidden = !open;
+        tg.setAttribute('aria-expanded', open ? 'true' : 'false');
+        tg.textContent = open ? 'Hide the plan weeks' : 'Open the plan weeks';
+      });
       restoreReturnContext();
+      if (PGRE.views.dashboard && PGRE.views.dashboard.mountIntensity) {
+        PGRE.views.dashboard.mountIntensity();
+      }
       if (PGRE.motion && !PGRE.motion.reduced) animateMeters();
     }
   };

@@ -608,9 +608,37 @@ PGRE.srs = {
                 m: prevIvl >= this.matureDays() ? 1 : 0, n: hadState ? 1 : 0, op: op, prev: prev };
     if (consumedSoft) row.soft = 1;
     log.push(row);
-    if (log.length > 8000) log.splice(0, log.length - 8000);
+    if (log.length > 8000) {
+      // Rows aging out fold into reviewMonths so long-term retention stats
+      // survive the cap (design §7.5).
+      this.foldReviewRows(log.slice(0, log.length - 8000));
+      log.splice(0, log.length - 8000);
+    }
     return st;
   },
+
+  /* Fold dropped cardReviews rows into state.reviewMonths —
+     { 'YYYY-MM': { subjectId: { yR, yA, mR, mA } } }: reviews and Agains split
+     by whether the card was mature (ivl >= matureDays) at write time. Only
+     n===1 rows count (real reviews, not re-grades/undos of the same first
+     grade). Subject comes from cardSubjectId so deleted-card rows still
+     attribute. Additive — callers keep max on cross-tab merge. */
+  foldReviewRows: function (rows) {
+    if (!rows || !rows.length) return;
+    var s = PGRE.store.state;
+    var out = s.reviewMonths || (s.reviewMonths = {});
+    rows.forEach(function (r) {
+      if (!r || r.n !== 1 || typeof r.d !== 'string' || r.d.length < 7) return;
+      var mk = r.d.slice(0, 7);
+      var sub = (PGRE.cardSubjectId ? PGRE.cardSubjectId(r.id) : 'physics') || 'physics';
+      var m = out[mk] || (out[mk] = {});
+      var rec = m[sub] || (m[sub] = { yR: 0, yA: 0, mR: 0, mA: 0 });
+      var again = r.g === 'again';
+      if (r.m) { rec.mR++; if (again) rec.mA++; }
+      else { rec.yR++; if (again) rec.yA++; }
+    });
+  },
+
 
   /* Undo the named review and no other. Returns { ok, opId, cardId, card }
      when that op is still the card's latest review. Returns null, and

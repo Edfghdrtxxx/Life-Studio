@@ -952,13 +952,13 @@ PGRE.nav = (function () {
   // Human labels for each sidebar route, keyed by the router's view name. These
   // match the sidebar wording exactly (esc'd at paint time).
   var LABELS = {
-    plan: 'Study plan', history: 'History', analytics: 'Analytics',
+    plan: 'Exam archive', history: 'History', analytics: 'Analytics',
     build: 'Custom quiz', search: 'Search', notes: 'Notes & bookmarks',
     mistakes: 'Mistake book', formulas: 'Recall',
     concepts: 'Concept visualization',
     focus: 'Focus timer',
     studytime: 'Study time', achievements: 'Achievements', library: 'Library',
-    exam: 'Mock exam', settings: 'Settings'
+    exam: 'Mock exams', settings: 'Settings'
   };
   var HREF = {
     plan: '#/plan', history: '#/history', analytics: '#/analytics',
@@ -969,6 +969,12 @@ PGRE.nav = (function () {
     studytime: '#/study-time', achievements: '#/achievements',
     library: '#/library', exam: '#/exam', settings: '#/settings'
   };
+  // Router view names that belong to the Physics subject — their base trail
+  // carries a "Physics" ancestor crumb pointing at the subject home, and the
+  // sidebar's physics sub-nav stays open while they are on screen.
+  var PHYSICS_VIEWS = { topic: 1, practice: 1, mistakes: 1, history: 1,
+    analytics: 1, concepts: 1, exam: 1, plan: 1, build: 1, notes: 1,
+    library: 1, search: 1 };
 
   var base = [{ label: 'Home', href: '#/' }];   // base trail for the active route
 
@@ -1026,13 +1032,21 @@ PGRE.nav = (function () {
       params = params || {};
       if (view === 'dashboard') {
         /* Home alone. */
+      } else if (view === 'subject') {
+        var s = PGRE.subjectById(params.id);
+        trail.push({ label: s ? s.name : 'Subject' });
+        if (params.sub === 'cards') trail.push({ label: 'All cards' });
+        else if (params.sub === 'lab') trail.push({ label: 'Visualizers' });
       } else if (view === 'topic') {
+        trail.push({ label: 'Physics', href: '#/subject/physics' });
         var t = PGRE.topicById(params.id);
         trail.push({ label: t ? t.name : 'Topic' });
       } else if (view === 'practice' && params.id === 'session' && params.sub2) {
+        trail.push({ label: 'Physics', href: '#/subject/physics' });
         trail.push({ label: 'History', href: '#/history' });
         trail.push({ label: 'Practice' });
       } else if (view === 'practice') {
+        trail.push({ label: 'Physics', href: '#/subject/physics' });
         var pt = params.id && params.id !== 'all' ? PGRE.topicById(params.id) : null;
         trail.push(pt ? { label: pt.name, href: '#/topic/' + pt.id }
                       : { label: 'All topics' });
@@ -1041,9 +1055,11 @@ PGRE.nav = (function () {
                           : params.sub2 === 'done' ? 'Practice · done before'
                           : 'Practice' });
       } else if (view === 'mistakes' && params.sub === 'drill' && params.sub2) {
+        trail.push({ label: 'Physics', href: '#/subject/physics' });
         trail.push({ label: 'History', href: '#/history' });
         trail.push({ label: 'Drill' });
       } else if (LABELS[view]) {
+        if (PHYSICS_VIEWS[view]) trail.push({ label: 'Physics', href: '#/subject/physics' });
         trail.push({ label: LABELS[view], href: HREF[view] });
         if (view === 'exam' && params.sub === 'run') trail.push({ label: 'Run' });
         else if (view === 'exam' && params.sub === 'review') trail.push({ label: 'Review' });
@@ -1104,6 +1120,10 @@ PGRE.route = function () {
   else if (parts[0] === 'library') { view = 'library'; }
   else if (parts[0] === 'settings') { view = 'settings'; }
   else if (parts[0] === 'exam') { view = 'exam'; }
+  else if (parts[0] === 'subject' && parts[1]) {
+    view = 'subject'; params.id = parts[1];
+    params.sub = parts[2] || null; params.sub2 = parts[3] || null;
+  }
   else { view = 'dashboard'; }
 
   var v = PGRE.views[view];
@@ -1151,15 +1171,30 @@ PGRE.route = function () {
 };
 
 /* Due counts on the sidebar (mistakes are synchronous; the formula deck
-   loads from IndexedDB, so its badge fills in a beat later). */
+   loads from IndexedDB, so the Recall and subject counts fill in a beat
+   later). Each subject row carries its due count; the Recall row carries
+   the studio-wide due count. */
 PGRE.refreshNavBadges = function () {
   var m = PGRE.srs.dueMistakes().length;
   var el = document.getElementById('nav-mist-due');
-  if (el) { el.textContent = m + ' due'; el.hidden = m === 0; PGRE.syncBadgeShimmer(el); }
+  if (el) { el.textContent = m; el.hidden = m === 0; PGRE.syncBadgeShimmer(el); }
   PGRE.formulaDeck().then(function (deck) {
-    var n = PGRE.srs.formulaDayRemaining(deck).length;
-    var el2 = document.getElementById('nav-form-due');
-    if (el2) { el2.textContent = n + ' left'; el2.hidden = n === 0; PGRE.syncBadgeShimmer(el2); }
+    var mem = PGRE.subjectMemory ? PGRE.subjectMemory(deck) : null;
+    if (!mem) return;
+    var tot = document.getElementById('nav-form-due');
+    if (tot) {
+      tot.textContent = mem.total.due ? mem.total.due + ' due' : '';
+      tot.hidden = mem.total.due === 0;
+      PGRE.syncBadgeShimmer(tot);
+    }
+    (PGRE.SUBJECTS || []).forEach(function (s) {
+      var chip = document.getElementById('nav-due-' + s.id);
+      if (!chip) return;
+      var n = (mem.byId[s.id] || { due: 0 }).due;
+      chip.textContent = n;
+      chip.hidden = n === 0;
+      PGRE.syncBadgeShimmer(chip);
+    });
   });
 };
 
@@ -1176,59 +1211,59 @@ PGRE.syncBadgeShimmer = function (el) {
 };
 
 PGRE.setActiveNav = function (view, params) {
+  params = params || {};
+  var physics = view === 'topic' || view === 'practice' || view === 'mistakes' ||
+    view === 'history' || view === 'analytics' || view === 'concepts' ||
+    view === 'exam' || view === 'plan' || view === 'build' || view === 'notes' ||
+    view === 'library' || view === 'search' ||
+    (view === 'subject' && params.id === 'physics');
+  var sub = document.getElementById('nav-physics-sub');
+  if (sub) sub.hidden = !physics;
+
+  // The physics sub-nav rows highlight by their tool page: a topic portal
+  // lights "Practice", everything else lights its own row.
+  var key = view;
+  if (view === 'dashboard') key = 'dashboard';
+  else if (view === 'formulas') key = 'formulas';
+  else if (view === 'subject') key = 'subject-' + params.id;
+  else if (view === 'topic') key = 'practice';
+  else if (view === 'practice') key = 'practice';
+  else if (view === 'exam' || view === 'plan') key = 'exam';
+
   document.querySelectorAll('#sidebar a[data-nav]').forEach(function (a) {
-    var key = a.getAttribute('data-nav');
-    var active = key === view || (view === 'topic' && key === 'topic-' + params.id) ||
-                 (view === 'practice' && (key === 'topic-' + params.id || key === 'practice-' + params.id));
+    var k = a.getAttribute('data-nav');
+    var active = k === key;
     a.classList.toggle('active', active);
-    if (active) {
-      a.setAttribute('aria-current', 'page');
-      var panel = a.closest('.nav-tree-items');
-      if (panel && panel.hidden) {
-        panel.hidden = false;
-        var toggle = panel.parentNode && panel.parentNode.querySelector('.nav-tree-toggle');
-        if (toggle) toggle.setAttribute('aria-expanded', 'true');
-      }
-    } else a.removeAttribute('aria-current');
+    if (active) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
   });
 };
 
+/* Sidebar tree (design §5, round 2): Today + Recall up top, one row per
+   subject under SUBJECTS (Physics opens a five-tool sub-nav on physics
+   pages), Studio pages under STUDIO, and Settings + the theme flip in the
+   footer. Groups are plain headings — nothing collapses. */
 PGRE.buildNav = function () {
   var el = document.getElementById('sidebar-nav');
   var icon = function (name) {
     return PGRE.sidebarIcon ? PGRE.sidebarIcon(name) : '';
   };
   var items = {
-    studio: [
+    top: [
       { href: '#/', key: 'dashboard', label: 'Today', icon: 'home' },
       { href: '#/formulas', key: 'formulas', label: 'Recall', icon: 'cards',
-        badge: 'nav-form-due' },
+        badge: 'nav-form-due' }
+    ],
+    studio: [
       { href: '#/achievements', key: 'achievements', label: 'Achievements', icon: 'award' },
       { href: '#/focus', key: 'focus', label: 'Focus timer', icon: 'timer' },
       { href: '#/study-time', key: 'studytime', label: 'Study time', icon: 'hourglass' }
-    ],
-    physics: [
-      { href: '#/practice/all', key: 'practice-all', label: 'Mixed practice', icon: 'play' },
-      { href: '#/mistakes', key: 'mistakes', label: 'Mistake book', icon: 'mistake',
-        badge: 'nav-mist-due' },
-      { href: '#/exam', key: 'exam', label: 'Mock exam', icon: 'stopwatch' },
-      { href: '#/build', key: 'build', label: 'Custom quiz', icon: 'sliders' },
-      { href: '#/history', key: 'history', label: 'History', icon: 'history' },
-      { href: '#/analytics', key: 'analytics', label: 'Analytics', icon: 'chart' },
-      { href: '#/concepts', key: 'concepts', label: 'Concept visualization', icon: 'atom' }
-    ],
-    more: [
-      { href: '#/plan', key: 'plan', label: 'Study plan', icon: 'calendar' },
-      { href: '#/search', key: 'search', label: 'Search', icon: 'search' },
-      { href: '#/notes', key: 'notes', label: 'Notes &amp; bookmarks', icon: 'note' },
-      { href: '#/library', key: 'library', label: 'Library', icon: 'folder' },
-      { href: '#/settings', key: 'settings', label: 'Settings', icon: 'gear' }
     ]
   };
   var groupLabels = {
+    top: 'Now',
+    subjects: 'Subjects',
     studio: 'Studio',
-    physics: 'Physics',
-    more: 'More',
     topics: 'Physics'   // sidebar search groups portal hits under the subject
   };
   var renderItem = function (item) {
@@ -1239,48 +1274,66 @@ PGRE.buildNav = function () {
       icon(item.icon) + '<span class="nav-label">' + item.label + '</span>' +
       badge + '</a>';
   };
-  // Group headers are quiet uppercase labels with a chevron; the icon
-  // column belongs to the destinations, so no glyph repeats in a header.
-  // `more` starts collapsed — the countdown-era pages stay reachable but out
-  // of the way (Life Studio: the study plan lives behind the menu).
-  var renderGroup = function (id, children, collapsed) {
+  var renderGroup = function (id, children) {
     return '<section class="nav-tree-group" data-nav-group="' + id + '">' +
-      '<button class="nav-tree-toggle" type="button" aria-expanded="' + (collapsed ? 'false' : 'true') + '" ' +
-        'aria-controls="nav-group-' + id + '">' +
-        '<span>' + groupLabels[id] + '</span>' +
-        '<span class="nav-tree-chevron" aria-hidden="true"></span>' +
-      '</button>' +
-      '<div class="nav-tree-items" id="nav-group-' + id + '"' + (collapsed ? ' hidden' : '') + '>' +
-      children + '</div>' +
-    '</section>';
+      '<h3 class="nav-group-h">' + groupLabels[id] + '</h3>' +
+      '<div class="nav-tree-items">' + children + '</div>' +
+      '</section>';
   };
-  var topicItems = '';
-  PGRE.TOPICS.forEach(function (t) {
-    topicItems += '<a href="#/topic/' + t.id + '" data-nav="topic-' + t.id + '">' +
-      '<span class="nav-mono">' + t.short + '</span>' +
-      '<span class="nav-label">' + t.name + '</span><span class="nav-weight">' + t.weight +
-      '%</span></a>';
-  });
+  var physicsSub = [
+    ['#/practice/all', 'practice', 'Practice'],
+    ['#/mistakes', 'mistakes', 'Mistake book'],
+    ['#/history', 'history', 'History'],
+    ['#/subject/physics/lab', 'lab', 'Visualizers'],
+    ['#/plan', 'plan', 'Exam archive']
+  ].map(function (l) {
+    var badge = l[1] === 'mistakes'
+      ? '<span class="nav-badge nav-badge-due" id="nav-mist-due" hidden></span>' : '';
+    return '<a href="' + l[0] + '" data-nav="' + l[1] + '">' +
+      '<span class="nav-label">' + l[2] + '</span>' + badge + '</a>';
+  }).join('');
+  var subjectItems = (PGRE.SUBJECTS || []).map(function (s) {
+    var row = '<a href="#/subject/' + s.id + '" data-nav="subject-' + s.id + '">' +
+      '<span class="nav-mono">' + s.code + '</span>' +
+      '<span class="nav-label">' + s.name + '</span>' +
+      '<span class="nav-badge nav-badge-due" id="nav-due-' + s.id + '" hidden></span></a>';
+    if (s.id === 'physics') {
+      row += '<div class="nav-sub" id="nav-physics-sub" hidden>' + physicsSub + '</div>';
+    }
+    return row;
+  }).join('');
   var html = '<div class="nav-tree">' +
+    items.top.map(renderItem).join('') +
+    renderGroup('subjects', subjectItems) +
     renderGroup('studio', items.studio.map(renderItem).join('')) +
-    renderGroup('physics', items.physics.map(renderItem).join('') + topicItems) +
-    renderGroup('more', items.more.map(renderItem).join(''), true) +
     '</div>';
   el.innerHTML = html;
-  el.querySelectorAll('.nav-tree-toggle').forEach(function (toggle) {
-    toggle.addEventListener('click', function () {
-      var panel = document.getElementById(toggle.getAttribute('aria-controls'));
-      if (!panel) return;
-      var open = !panel.hidden;
-      panel.hidden = open;
-      toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
-    });
-  });
   if (PGRE.motion && typeof PGRE.motion.letterSwapNav === 'function') {
     PGRE.motion.letterSwapNav(el);
   }
   // the search box above the tree finds these same destinations (js/sidebar-search.js)
-  if (PGRE.sidebarSearch) PGRE.sidebarSearch.mount(items, groupLabels);
+  var pages = {
+    top: items.top,
+    subjects: (PGRE.SUBJECTS || []).map(function (s) {
+      return { href: '#/subject/' + s.id, key: 'subject-' + s.id, label: s.name, icon: null };
+    }),
+    studio: items.studio.concat([
+      { href: '#/practice/all', key: 'practice', label: 'Practice', icon: 'play' },
+      { href: '#/mistakes', key: 'mistakes', label: 'Mistake book', icon: 'mistake' },
+      { href: '#/history', key: 'history', label: 'History', icon: 'history' },
+      { href: '#/analytics', key: 'analytics', label: 'Analytics', icon: 'chart' },
+      { href: '#/exam', key: 'exam', label: 'Mock exams', icon: 'stopwatch' },
+      { href: '#/plan', key: 'plan', label: 'Exam archive', icon: 'calendar' },
+      { href: '#/build', key: 'build', label: 'Custom quiz', icon: 'sliders' },
+      { href: '#/notes', key: 'notes', label: 'Notes &amp; bookmarks', icon: 'note' },
+      { href: '#/concepts', key: 'concepts', label: 'Concept visualization', icon: 'atom' },
+      { href: '#/library', key: 'library', label: 'Library', icon: 'folder' },
+      { href: '#/search', key: 'search', label: 'Search', icon: 'search' },
+      { href: '#/settings', key: 'settings', label: 'Settings', icon: 'gear' }
+    ])
+  };
+  var pageLabels = { top: 'Now', subjects: 'Subjects', studio: 'Studio', topics: 'Physics' };
+  if (PGRE.sidebarSearch) PGRE.sidebarSearch.mount(pages, pageLabels);
 };
 
 
@@ -1383,7 +1436,7 @@ PGRE.applyTheme = function (t) {
   else delete document.documentElement.dataset.dark;
   var btn = document.getElementById('theme-toggle');
   if (btn) {
-    btn.textContent = 'Theme';
+    btn.textContent = 'Light / dark';
     btn.setAttribute('aria-pressed', theme.dark ? 'true' : 'false');
     btn.setAttribute('title', 'Theme: ' + theme.name + ' — pick in Settings');
   }

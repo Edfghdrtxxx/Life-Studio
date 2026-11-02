@@ -167,27 +167,25 @@ async function main() {
     /* --- brand + sidebar --------------------------------------------------- */
     await go(base + '/#/');
     await waitFor('!!window.PGRE && !!PGRE.store && !!PGRE.store.state', 'the app boots');
-    await waitFor('document.querySelectorAll("#sidebar-nav .nav-tree-group").length >= 3', 'nav groups');
+    await waitFor('document.querySelectorAll("#sidebar-nav .nav-tree-group").length >= 2 &&' +
+      ' !!document.getElementById("nav-physics-sub")', 'nav groups');
     check((await ev('document.title')) === 'Life Studio', 'document title is Life Studio');
     check((await ev('(document.querySelector(".brand-name")||{}).textContent || ""')).indexOf('Life') !== -1,
       'sidebar brand reads Life Studio');
     var groups = await ev(
       'Array.prototype.map.call(document.querySelectorAll("#sidebar-nav .nav-tree-group"),' +
-      ' function(g){var b=g.querySelector(".nav-tree-toggle");var p=g.querySelector(".nav-tree-items");' +
+      ' function(g){var b=g.querySelector(".nav-group-h");var p=g.querySelector(".nav-tree-items");' +
       ' return {id:g.getAttribute("data-nav-group"),label:b?b.textContent.trim():"",hidden:!p||p.hidden};})');
     var gmap = {};
     groups.forEach(function (g) { gmap[g.id] = g; });
+    check(!!gmap.subjects, 'Subjects group exists');
     check(!!gmap.studio, 'Studio group exists');
-    check(!!gmap.physics, 'Physics group exists');
-    check(!!gmap.more && gmap.more.hidden === true, 'More group renders collapsed');
-    check((await ev('!!document.querySelector(\'a[data-nav="settings"]\')')), 'Settings link is in the nav');
-    check((await ev('(document.querySelector(\'a[data-nav="settings"]\')||{}).textContent || ""'))
+    check((await ev('!!document.querySelector(\'#sidebar-footer a[data-nav="settings"]\')')),
+      'Settings link sits in the sidebar footer');
+    check((await ev('(document.querySelector(\'#sidebar-footer a[data-nav="settings"]\')||{}).textContent || ""'))
       .indexOf('Settings') !== -1, 'Settings link is labelled');
-    /* Settings lives in More, which starts collapsed: it must be inside it. */
-    var settingsParent = await ev(
-      '(document.querySelector(\'a[data-nav="settings"]\')||{}).closest && ' +
-      'document.querySelector(\'a[data-nav="settings"]\').closest(".nav-tree-group").getAttribute("data-nav-group")');
-    check(settingsParent === 'more', 'Settings sits in the collapsed More group');
+    check(await ev('document.querySelectorAll("#sidebar-nav a[data-nav]").length >= 7'),
+      'the nav lists subjects and studio pages');
     await shot('nav-life-studio.png');
 
     /* --- dashboard: countdown and runway are gone --------------------------- */
@@ -248,25 +246,28 @@ async function main() {
       await shot('theme-' + sid + '.png');
     }
 
-    /* --- recall: subject filter + new-cards-per-day -------------------------- */
+    /* --- recall: subject chips + today card --------------------------------- */
     await ev('PGRE.setTheme("paper"); location.hash = "#/formulas"; true');
-    await waitFor('!!document.getElementById("formulas-root")', 'Recall home');
+    await waitFor('!!document.getElementById("formulas-root") &&' +
+      ' document.querySelectorAll("#formulas-root .subj-chip[data-rsubj]").length >= 2',
+      'Recall home with subject chips');
     await sleep(500);
-    var hasFilter = await ev('!!document.getElementById("subject-filter")');
-    check(hasFilter, 'the subject filter sits on the Recall home');
-    var filterOpts = await ev(
-      'Array.prototype.map.call(document.querySelectorAll("#subject-filter option"), function(o){return o.value;})');
-    check(filterOpts.indexOf('english') !== -1 && filterOpts.indexOf('physics') !== -1,
-      'the filter lists the Life Studio subjects');
-    check(await ev('!!document.getElementById("newday-inc") && !!document.getElementById("newday-dec")'),
-      'the new-cards-per-day stepper is in Options');
+    var chipIds = await ev(
+      'Array.prototype.map.call(document.querySelectorAll("#formulas-root .subj-chip[data-rsubj]"),' +
+      ' function(b){return b.getAttribute("data-rsubj");})');
+    check(chipIds.indexOf('all') === 0 && chipIds.indexOf('physics') !== -1,
+      'the subject chips serve every subject with cards, got ' + JSON.stringify(chipIds));
+    await ev('(function(){var c=document.querySelector(\'#formulas-root .subj-chip[data-rsubj="physics"]\');' +
+      'if(c)c.click();return PGRE.store.state.settings.recallSubject;})()');
+    check(await ev('PGRE.store.state.settings.recallSubject') === 'physics',
+      'a subject chip narrows Recall to that subject');
     await shot('recall-subject-filter.png');
 
     /* --- cards tab: create a card -------------------------------------------- */
-    await ev('(function(){var t=Array.prototype.find.call(document.querySelectorAll("#formulas-root button"),' +
-      ' function(b){return /Cards/.test(b.textContent||"");});if(t)t.click();return !!t;})()');
-    await sleep(400);
-    check(await ev('!!document.getElementById("uec-form")'), 'the Cards tab shows the editor');
+    await ev('location.hash = "#/formulas/cards"; true');
+    await waitFor('!!document.getElementById("ed-form") ||' +
+      ' !!document.querySelector("#formulas-root .fcard-skeleton") === false', 'the Cards tab mounts');
+    check(await ev('!!document.getElementById("ed-form")'), 'the Cards tab shows the editor');
     await ev('document.getElementById("uec-subject").value = "vocab";' +
       'document.getElementById("uec-front").value = "laconic";' +
       'document.getElementById("uec-back").value = "using few words";' +

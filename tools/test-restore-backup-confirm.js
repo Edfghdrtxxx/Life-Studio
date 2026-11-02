@@ -11,7 +11,7 @@ var crypto = require('crypto');
 
 var root = path.resolve(__dirname, '..');
 var storeSrc = fs.readFileSync(path.join(root, 'js', 'store.js'), 'utf8');
-var viewSrc = fs.readFileSync(path.join(root, 'js', 'view-content.js'), 'utf8');
+var viewSrc = fs.readFileSync(path.join(root, 'js', 'view-settings.js'), 'utf8');
 var indexHtml = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 
 var passed = 0;
@@ -32,8 +32,10 @@ function fakeEl(id) {
     files: [],
     value: '',
     listeners: {},
-    classList: { add: function () {}, remove: function () {} },
+    classList: { add: function () {}, remove: function () {}, toggle: function () {}, contains: function () { return false; } },
     addEventListener: function (ev, fn) { el.listeners[ev] = fn; },
+    querySelector: function () { return null; },
+    querySelectorAll: function () { return []; },
     focus: function () {},
     click: function () { if (el.listeners.click) el.listeners.click({ target: el }); }
   };
@@ -123,13 +125,10 @@ function seed(tab) {
   tab.PGRE.store.state.migrations = { ankiReset2026: 'x', planRebuild2026: 'x', easy10: 'x' };
 }
 
-console.log('\nindex.html cache token for view-content.js');
-var tokenMatch = indexHtml.match(/<script src="js\/view-content\.js\?v=([^"]+)"/);
-assert(tokenMatch && tokenMatch[1] === '20261102a',
-  'view-content.js cache token is 20261102a, got ' + (tokenMatch ? tokenMatch[1] : 'none'));
-assert(indexHtml.indexOf('js/view-content.js?v=20261020b') < 0 &&
-       indexHtml.indexOf('js/view-content.js?v=20261020a') < 0,
-  'the previous view-content.js cache token is gone');
+console.log('\nindex.html cache token for view-settings.js');
+var tokenMatch = indexHtml.match(/<script src="js\/view-settings\.js\?v=([^"]+)"/);
+assert(tokenMatch && tokenMatch[1] === '20261102d',
+  'view-settings.js cache token is 20261102d, got ' + (tokenMatch ? tokenMatch[1] : 'none'));
 
 console.log('\nCancel leaves the saved state untouched');
 var cancel = makeSandbox();
@@ -140,7 +139,7 @@ var leftover = JSON.parse(cancel.disk['pgre-state-v1']);
 leftover.xp = 111;
 leftover.migrations = { ankiReset2026: 'x', planRebuild2026: 'x', easy10: 'x' };
 cancel.disk['pgre-state-v1-backup'] = JSON.stringify(leftover);
-cancel.tab.PGRE.views.library.mount();
+cancel.tab.PGRE.views.settings.mount();
 cancel.setConfirm(false);
 cancel.clickRestore();
 assert(cancel.confirmCalls.length === 1 && cancel.confirmCalls[0] === CONFIRM_TEXT,
@@ -158,7 +157,7 @@ var copy = JSON.parse(ok.disk['pgre-state-v1']);
 copy.xp = 111;
 copy.migrations = { ankiReset2026: 'x', planRebuild2026: 'x', easy10: 'x' };
 ok.disk['pgre-state-v1-backup'] = JSON.stringify(copy);
-ok.tab.PGRE.views.library.mount();
+ok.tab.PGRE.views.settings.mount();
 ok.setConfirm(true);
 ok.clickRestore();
 assert(ok.confirmCalls.length === 1 && ok.confirmCalls[0] === CONFIRM_TEXT,
