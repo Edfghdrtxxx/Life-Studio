@@ -11,11 +11,11 @@
        when you change a file, bump the token on ITS tag (or inject site) so a
        returning browser never mixes a fresh view with a stale engine. -->
   <link rel="stylesheet" href="css/fonts.css?v=20260918b">
-  <link rel="stylesheet" href="css/style.css?v=20261102b">
+  <link rel="stylesheet" href="css/style.css?v=20261102d">
   <link rel="stylesheet" href="css/visualizer.css?v=20261102a">
   <link rel="stylesheet" href="css/print.css?v=20260916f">
   <link rel="stylesheet" href="css/motion.css?v=20261003a">
-  <link rel="stylesheet" href="css/life-studio.css?v=20261102a">
+  <link rel="stylesheet" href="css/life-studio.css?v=20261102d">
   <link rel="stylesheet" href="css/concepts.css?v=20261102a">
   <link rel="stylesheet" href="vendor/katex/katex.min.css?v=20260916f">
 </head>
@@ -28,12 +28,13 @@
   <a class="skip-link" href="#main">Skip to content</a>
   <aside id="sidebar">
     <a class="brand" id="brand-home" href="#/" aria-label="Life Studio home">
-      <div class="brand-name">Life <span class="accent">Studio</span></div>
+      <div class="brand-name">Life Studio</div>
       <div class="brand-sub">Private study studio</div>
     </a>
     <nav id="sidebar-nav"></nav>
     <div id="sidebar-footer">
-      <button id="theme-toggle" class="btn btn-ghost btn-sm" type="button" aria-pressed="false">Theme</button>
+      <a class="sidebar-foot-link" href="#/settings" data-nav="settings" id="sidebar-settings"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.5-2-3.4-2.3 1a7.6 7.6 0 0 0-2.6-1.5L14 3h-4l-.5 2.6a7.6 7.6 0 0 0-2.6 1.5l-2.3-1-2 3.4 2 1.5a7.6 7.6 0 0 0 0 3l-2 1.5 2 3.4 2.3-1a7.6 7.6 0 0 0 2.6 1.5L10 21h4l.5-2.6a7.6 7.6 0 0 0 2.6-1.5l2.3 1 2-3.4-2-1.5a7.6 7.6 0 0 0 0-3Z"/></svg><span>Settings</span></a>
+      <button id="theme-toggle" class="btn btn-ghost btn-sm" type="button" aria-pressed="false">Light / dark</button>
     </div>
   </aside>
 
@@ -151,13 +152,13 @@
   <script src="content/bank/ets-exams.js?v=20261017b" defer></script>  <!-- released ETS exams (gitignored — ETS copyright) -->
 
   <!-- engine -->
-  <script src="js/subjects.js?v=20261102a" defer></script>     <!-- Life Studio subject registry + cardSubject -->
-  <script src="js/store.js?v=20261102a" defer></script>
-  <script src="js/backup.js?v=20261020b" defer></script>
-  <script src="js/srs.js?v=20261102a" defer></script>
+  <script src="js/subjects.js?v=20261102c" defer></script>     <!-- Life Studio subject registry + cardSubject -->
+  <script src="js/store.js?v=20261102c" defer></script>
+  <script src="js/backup.js?v=20261102d" defer></script>
+  <script src="js/srs.js?v=20261102c" defer></script>
   <script src="js/intensity.js?v=20261025a" defer></script> <!-- banded study-intensity feedback (dashboard card, practice summary, status payload) -->
   <script src="js/status.js?v=20261025a" defer></script>
-  <script src="js/user-cards.js?v=20261102a" defer></script>  <!-- Life Studio: the student's own recall cards -->
+  <script src="js/user-cards.js?v=20261102c" defer></script>  <!-- Life Studio: the student's own recall cards -->
   <script src="js/data-duplicates.js?v=20261025a" defer></script>  <!-- cross-form duplicate qids (ets2024 -> gr1777) -->
   <script src="js/bank.js?v=20261025a" defer></script>
   <script src="js/packs.js?v=20261025a" defer></script>
@@ -172,24 +173,25 @@
   <script src="js/chart-tip.js?v=20260916f" defer></script>  <!-- delegated [data-tip] chart popover -->
   <script src="js/term-tip.js?v=20261026a" defer></script>  <!-- underlines CARD_TERMS on card faces after typesetMath; hover popover -->
 
-  <script src="js/view-dashboard.js?v=20261102b" defer></script>
+  <script src="js/view-dashboard.js?v=20261102d" defer></script>
+  <script src="js/view-subject.js?v=20261102d" defer></script>     <!-- subject home (Life Studio round 2) -->
   <script src="js/view-topic.js?v=20261025a" defer></script>
-  <script src="js/view-practice.js?v=20261025a" defer></script>
+  <script src="js/view-practice.js?v=20261102d" defer></script>
   <script src="js/view-history.js?v=20261020p" defer></script>
   <script src="js/view-analytics.js?v=20261011a" defer></script>
   <script src="js/view-build.js?v=20261025a" defer></script>
   <script src="js/view-search.js?v=20261026a" defer></script>
   <script src="js/view-notes.js?v=20261025a" defer></script>
-  <script src="js/view-mistakes.js?v=20261020m" defer></script>
-  <script src="js/view-formulas.js?v=20261102a" defer></script>
+  <script src="js/view-mistakes.js?v=20261102d" defer></script>
+  <script src="js/view-formulas.js?v=20261102d" defer></script>
   <script src="js/view-focus.js?v=20260921a" defer></script>        <!-- F5 focus page -->
-  <script src="js/view-study-time.js?v=20261102a" defer></script>   <!-- dedicated study-time page -->
+  <script src="js/view-study-time.js?v=20261102d" defer></script>   <!-- dedicated study-time page -->
   <script src="js/view-achievements.js?v=20260925a" defer></script>
-  <script src="js/view-plan.js?v=20261102a" defer></script>
+  <script src="js/view-plan.js?v=20261102d" defer></script>
   <script src="js/exam-engine.js?v=20261025a" defer></script>
-  <script src="js/view-exam.js?v=20261025a" defer></script>
-  <script src="js/view-content.js?v=20261102a" defer></script>     <!-- Library view (PGRE.views.library) -->
-  <script src="js/view-settings.js?v=20261102a" defer></script>   <!-- Settings: theme picker (Life Studio) -->
+  <script src="js/view-exam.js?v=20261102d" defer></script>
+  <script src="js/view-content.js?v=20261102d" defer></script>     <!-- Library view (PGRE.views.library) -->
+  <script src="js/view-settings.js?v=20261102d" defer></script>   <!-- Settings: theme picker (Life Studio) -->
   <script src="js/visualizer-engine.js?v=20261102a" defer></script>
   <script src="js/visualizers/trio-g1.js?v=20260925b" defer></script>
   <script src="js/visualizers/trio-g2.js?v=20260925c" defer></script>
@@ -210,10 +212,10 @@
   <script src="js/view-concepts.js?v=20261006a" defer></script>
 
   <!-- shell -->
-  <script src="js/sidebar-icons.js?v=20261102a" defer></script>
+  <script src="js/sidebar-icons.js?v=20261102c" defer></script>
   <script src="js/session-park.js?v=20261004b" defer></script>
   <script src="js/sidebar-search.js?v=20261012d" defer></script>  <!-- search box in the sidebar; PGRE.buildNav mounts it -->
-  <script src="js/app.js?v=20261102a" defer></script>
+  <script src="js/app.js?v=20261102d" defer></script>
   <!-- motion effects: runs after app.js and before DOMContentLoaded, so PGRE.motion exists before PGRE.boot runs -->
   <script src="js/motion.js?v=20261003a" defer></script>
 </body>
