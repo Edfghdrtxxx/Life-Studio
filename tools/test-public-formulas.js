@@ -111,7 +111,15 @@ var ADDED = [
   'supp-impulse-power',
   'supp-rutherford-scattering',
   /* 2026-10-21 merge of the three counting distributions. */
-  'supp-counting-distributions'
+  'supp-counting-distributions',
+  /* 2026-10-27 the table of information gives eps0 but not k. */
+  'supp-coulomb-constant',
+  /* 2026-10-27 curl components after a vector-potential sign miss. */
+  'supp-curl-components',
+  /* 2026-10-27 graphene miss: dispersion relations as one list. */
+  'supp-dispersion-relations',
+  /* 2026-10-27 neutron EDM debrief: P, T and C sign table. */
+  'supp-p-t-c-transformations'
 ];
 
 var byId = {};
