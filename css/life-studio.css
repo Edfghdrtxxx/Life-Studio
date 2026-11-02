@@ -489,3 +489,78 @@ a.subj-tile { display: block; text-decoration: none; color: inherit; }
   .sec-head .btn-row { width: 100%; }
   .topic-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* ——— Other apps (report §14.3): Maimemo + Obsidian rows on Today, the
+   connection line in Settings, and Maimemo's stacked share of the Study
+   time day bars. Rows reuse .srow; .oa-row is not clickable. ——— */
+.oa-row { cursor: default; }
+.oa-bar {
+  height: 6px;
+  background: var(--ivory);
+  border-radius: 3px;
+  overflow: hidden;
+  min-width: 0;
+}
+.oa-bar span { display: block; height: 100%; background: var(--ink-2); border-radius: 3px; }
+.oa-meta {
+  margin: 2px 4px 8px 46px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.oa-note { font-size: 13.5px; color: var(--ink); text-decoration: underline dotted; }
+.oa-note:hover { color: var(--accent-deep); }
+.oa-titles { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oa-none { font-size: 13.5px; color: var(--ink-2); }
+.other-apps-state { margin: 0 0 6px; }
+.oa-set-state { font-size: 14px; }
+.oa-steps { margin: 4px 0 6px 18px; padding: 0; }
+.oa-steps li { margin-bottom: 8px; }
+.oa-cmd {
+  display: inline-block;
+  margin-top: 3px;
+  padding: 3px 6px;
+  background: var(--ivory);
+  border-radius: 4px;
+  font: 11.5px var(--mono);
+  color: var(--ink);
+  white-space: normal;
+  word-break: break-all;
+}
+
+/* Study time daily chart: the top segment of a day bar is Maimemo's share —
+   the same ink as the studio's bar but outlined on the surface (the mockup's
+   convention), so today's coral bar keeps leading and the sources read apart. */
+.stbar-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  max-width: 14px;
+  overflow: hidden;
+}
+.stbar-mm {
+  flex: 1 1 auto;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 2px var(--ink-2);
+  border-radius: 3px 3px 0 0;
+  min-height: 3px;
+}
+.stbar-mm-n {
+  font-size: 8.5px;
+  font-family: var(--mono);
+  color: var(--ink-3);
+  margin-top: 2px;
+  height: 22px;
+  line-height: 1.2;
+  text-align: center;
+  white-space: pre;
+}
+.stbar-mm-n-empty { visibility: hidden; }
+.oa-row .ct { white-space: nowrap; }
+.stbar-key { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; font-size: 12.5px; color: var(--ink-2); }
+.stbar-key i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -2px; }
+.stbar-key i.st { background: var(--ink-2); }
+.stbar-key i.mm { background: var(--surface); box-shadow: inset 0 0 0 2px var(--ink-2); }
+@media (max-width: 700px) {
+  .stbar-mm-n { display: none; }
+}

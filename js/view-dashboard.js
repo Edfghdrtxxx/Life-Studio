@@ -1138,6 +1138,115 @@ PGRE.views.dashboard = (function () {
         : '') + '</div>';
   }
 
+  /* ——— Other apps (report §14.3): Maimemo minutes/words and today's Obsidian
+     learning sessions, read through the local status bridge
+     (js/study-sources.js). Three states: 'off' (bridge silent or 404 —
+     the helper may never have been installed), 'stale' (the helper's
+     120-minute schedule lapsed — last numbers shown with their update
+     time), and today's Maimemo block missing (the app counts a day only
+     after it has been opened once). ——— */
+
+  function obsidianLink(path, title) {
+    var note = String(path).replace(/\.md$/, '');
+    return 'obsidian://open?vault=' + encodeURIComponent(PGRE.SESSION_VAULT || 'OrbitOS') +
+      '&file=' + encodeURIComponent(note);
+  }
+
+  function otherAppsCardHTML(res) {
+    var ui = PGRE.ui, ss = PGRE.studySources;
+    var head = '<div class="card other-apps"><h2>Other apps</h2>';
+    if (!res || res.status !== 'ok') {
+      return head +
+        '<p class="muted">Not connected — Life Studio can show your Maimemo minutes and ' +
+        'today’s Obsidian learning sessions here. The one-time setup is in ' +
+        '<a href="#/settings">Settings › Other apps</a>.</p></div>';
+    }
+    var stale = ss.freshness(res.data) === 'stale';
+    var when = ss.fmtUpdated(ss.lastUpdatedAt(res.data));
+    var today = ss.entryFor(res.data);
+    var last = ss.latest(res.data);
+    var rows = '', banner = '';
+    if (stale) {
+      banner = '<p class="muted other-apps-state">No update since ' + ui.esc(when || 'unknown') +
+        ' — the helper runs every 120 minutes. Last numbers kept.</p>';
+    }
+    var mmEntry = ss.hasMaimemo(today) ? today : (stale && ss.hasMaimemo(last && last.entry) ? last.entry : null);
+    var mmDate = ss.hasMaimemo(today) ? ss.dayKey() : (mmEntry ? last.date : null);
+    if (mmEntry) {
+      var m = mmEntry.maimemo;
+      var words = (typeof m.finished === 'number' ? m.finished : 0) + ' / ' +
+        (typeof m.total === 'number' ? m.total : '—');
+      var pct = (typeof m.total === 'number' && m.total > 0)
+        ? Math.min(100, Math.round(100 * (m.finished || 0) / m.total)) : 0;
+      var mmMeta = 'Words' + (mmDate && mmDate !== ss.dayKey() ? ' on ' + ui.esc(mmDate) : ' today') +
+        ' ' + words + ' · ' + ss.fmtMin(ss.maimemoSec(mmEntry) / 60);
+      mmMeta += (when ? ' · updated ' + ui.esc(when) : '') + ' · read only';
+      rows += '<div class="srow oa-row"><span class="mono-chip">MM</span>' +
+        '<span class="nm">Maimemo</span>' +
+        '<div class="bar oa-bar"><span style="width:' + pct + '%"></span></div>' +
+        '<span class="ct">' + ui.esc(words) + '</span></div>' +
+        '<div class="oa-meta">' + mmMeta + '</div>';
+    } else {
+      rows += '<div class="srow oa-row"><span class="mono-chip">MM</span>' +
+        '<span class="nm">Maimemo</span>' +
+        '<span class="oa-none">Maimemo has no numbers for today yet: open the app once.</span>' +
+        '<span class="ct">—</span></div>';
+    }
+    /* Sessions come only from today's entry — an older day's titles shown
+       as "today" would lie; the stale banner already says the data is old. */
+    var sess = ss.sessionsOf(today);
+    var obMeta = sess.length
+      ? 'From today’s learning-session notes · opens the note in Obsidian · read only'
+      : 'No learning sessions today · counted, not timed · read only';
+    var titles = sess.map(function (s2) {
+      var t = s2.title || String(s2.path).replace(/^.*\//, '').replace(/\.md$/, '');
+      return '<a class="session-link oa-note" href="' + ui.esc(obsidianLink(s2.path)) +
+        '" data-session-link title="Open in Obsidian: ' + ui.esc(t) + '">' + ui.esc(t) + '</a>';
+    }).join('<span class="muted"> · </span>');
+    rows += '<div class="srow oa-row"><span class="mono-chip">OB</span>' +
+      '<span class="nm">Obsidian</span>' +
+      '<span class="oa-titles">' + (titles || '<span class="muted">—</span>') + '</span>' +
+      '<span class="ct">' + sess.length + ' session' + (sess.length === 1 ? '' : 's') + '</span></div>' +
+      '<div class="oa-meta">' + obMeta + '</div>';
+    return head + banner + '<div class="srows oa-rows">' + rows + '</div></div>';
+  }
+
+  /* Header line under the title: "Studied today 1 h 13 min: Studio 42 min,
+     Maimemo 31 min. One learning session in Obsidian." Studio minutes come
+     from the passive tracker + focus timer; the rest from the bridge. */
+  function sourcesLineHTML(res, studioMin) {
+    var ss = PGRE.studySources;
+    if (!res || res.status !== 'ok') return '';
+    var today = ss.entryFor(res.data);
+    var mmMin = today ? Math.round(ss.maimemoSec(today) / 60) : 0;
+    var nSess = ss.sessionsOf(today).length;
+    if (!studioMin && !mmMin && !nSess) return '';
+    var parts = 'Studied today <b>' + ss.fmtMin(studioMin + mmMin) + '</b>: Studio ' +
+      ss.fmtMin(studioMin);
+    if (mmMin) parts += ', Maimemo ' + ss.fmtMin(mmMin);
+    parts += '.';
+    if (nSess) {
+      parts += ' ' + (nSess === 1 ? 'One learning session' : nSess + ' learning sessions') +
+        ' in Obsidian.';
+    }
+    return parts;
+  }
+
+  function paintOtherApps(res) {
+    var slot = document.getElementById('today-other-apps');
+    var line = document.getElementById('today-sources');
+    if (!slot) return;
+    var studioMin = Math.round((PGRE.studyTime && PGRE.studyTime.liveTodaySec
+      ? PGRE.studyTime.liveTodaySec() : 0) / 60);
+    slot.innerHTML = otherAppsCardHTML(res);
+    var html = sourcesLineHTML(res, studioMin);
+    if (line) {
+      if (html) { line.innerHTML = html; line.hidden = false; }
+      else line.hidden = true;
+    }
+    if (PGRE.wireSessionLinks) PGRE.wireSessionLinks(slot);
+  }
+
   function render() {
     var ui = PGRE.ui, g = PGRE.gamify, s = PGRE.store.state;
     var lvl = g.levelInfo(s.xp);
@@ -1155,15 +1264,20 @@ PGRE.views.dashboard = (function () {
       '<div class="h1">Today</div>' +
       '<p class="lead" id="today-lead">' +
         (streak ? streak + '-day streak' : 'The streak starts with the first review') +
-        '</p></div>' +
+        '</p>' +
+      '<p class="meta" id="today-sources" hidden></p></div>' +
       '<button class="btn btn-ghost" id="today-add-card">+ Add card</button></div>' +
       '<div style="height:18px"></div>';
-
+    // Other apps (report §14.3): Maimemo minutes/words and today's Obsidian
+    // sessions, fetched from the local status bridge. Empty until the fetch
+    // resolves; mount paints the connected/stale/not-connected state.
+    html += '<div id="today-other-apps"></div>';
     html += '<div id="today-review-slot">' +
       '<div class="card practice-card fcard-skeleton">' +
       '<div class="skel-bar" style="width:35%"></div>' +
       '<div class="skel-bar" style="width:82%"></div>' +
       '<div class="skel-bar" style="width:64%"></div></div></div>';
+
 
     // Streak + Time today tiles.
     var goal = (s.settings && s.settings.dailyTargetMin) || 0;
@@ -1284,6 +1398,13 @@ PGRE.views.dashboard = (function () {
   function mount() {
     if (!keyBound) { document.addEventListener('keydown', onKey); keyBound = true; }
     if (PGRE.sessionPark) PGRE.sessionPark.wireDashboard();
+
+    // Other apps: one shared fetch (js/study-sources.js). The card slot and
+    // the header line are painted when it resolves; the bridge not answering
+    // resolves 'off' and paints "Not connected" instead of blocking Today.
+    if (PGRE.studySources && PGRE.studySources.load) {
+      PGRE.studySources.load().then(paintOtherApps);
+    }
 
     var gi = document.getElementById('notice-gotit');
     if (gi) gi.addEventListener('click', function () {
