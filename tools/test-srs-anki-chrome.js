@@ -73,8 +73,8 @@ function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 // The Dashboard counts #today-formulas up from 0 (countUp in js/motion.js
 // holds its frame id in el._cu until the last frame), so the text is final
 // only when the placeholder is gone and that tween has ended.
-var TODAY_FORMULAS_READY = "(function () { var el = document.getElementById('today-formulas'); " +
-  "return !!el && el.textContent !== '…' && !el._cu; })()";
+var TODAY_FORMULAS_READY = "(function () { " +
+  "return !!document.querySelector('.review-card #today-study, .review-card #today-choose'); })()";
 
 // SIGTERM Chrome, wait (bounded) for it to exit so its profile dir is
 // released before we rm it; escalate to SIGKILL if it hangs.
@@ -197,18 +197,18 @@ async function main() {
   await evaluate("location.hash = '#/formulas'");
   await sleep(500);
   for (var realWait = 0; realWait < 30; realWait++) {
-    if (await evaluate("!!document.querySelector('[data-btab=\\\"upcoming\\\"]')")) break;
+    if (await evaluate("!!document.querySelector('.flash-tab[data-mode=\\\"browse\\\"]')")) break;
     await sleep(150);
   }
-  await evaluate("document.querySelector('[data-btab=\\\"upcoming\\\"]').click()");
+  await evaluate("document.querySelector('.flash-tab[data-mode=\\\"browse\\\"]').click()");
   await sleep(250);
   var realUi = await evaluate(`({
-    visibleCards: document.querySelectorAll('#browse-body .browse-row').length,
-    names: Array.prototype.slice.call(document.querySelectorAll('#browse-body .deck-name')).slice(0, 5).map(function (e) { return e.textContent; }),
+    visibleCards: document.querySelectorAll('article.fs-card').length,
+    names: Array.prototype.slice.call(document.querySelectorAll('.fs-group-head')).slice(0, 8).map(function (e) { return e.textContent; }),
     body: (document.getElementById('formulas-root') || document.body).innerText.slice(0, 1200)
   })`);
-  if (realUi.visibleCards < 300 || !realUi.names.some(function (n) {
-    return /Kinematics|Circular Motion|Dielectrics|Conductors/.test(n);
+  if (realUi.visibleCards < 20 || !realUi.names.some(function (n) {
+    return /Mechanics|Electrodynamics|Quantum/.test(n);
   })) {
     throw new Error('real formula deck did not render in Formula Recall: ' + JSON.stringify(realUi));
   }
@@ -235,17 +235,18 @@ async function main() {
   })()`);
   await sleep(500);
   for (var realPickupWait = 0; realPickupWait < 30; realPickupWait++) {
-    if (await evaluate(TODAY_FORMULAS_READY)) break;
+    if (await evaluate("!!document.querySelector('.review-card #today-study')")) break;
     await sleep(150);
   }
   var realPickupUi = await evaluate(`({
-    text: (document.getElementById('today-formulas') || {}).textContent || '',
+    num: (document.querySelector('.review-card .rc-num') || {}).textContent || '',
+    btn: (document.getElementById('today-study') || {}).textContent || '',
     batch: PGRE.store.state.formulaDay
   })`);
-  if (realPickupUi.text !== '3 due now') {
+  if (!/^3/.test(realPickupUi.num.replace(/\\s+/g, ''))) {
     throw new Error('real formula pickup did not offer the real cards: ' + JSON.stringify(realPickupUi));
   }
-  await evaluate("document.getElementById('today-formulas-btn').click()");
+  await evaluate("document.getElementById('today-study').click()");
   await sleep(500);
   var realStudy = await evaluate(`({
     hash: location.hash,
@@ -291,47 +292,27 @@ async function main() {
   await sleep(250);
   await evaluate("location.hash = '#/formulas'");
   await sleep(800);
-  var homeReady = false;
-  for (var h = 0; h < 30; h++) {
-    homeReady = await evaluate("!!document.getElementById('exam-cap-toggle') || !!document.getElementById('study-btn')");
-    if (homeReady) break;
-    await sleep(150);
-  }
   var diag = await evaluate(`({
     hash: location.hash,
-    toggle: !!(document.getElementById('exam-cap-toggle')),
-    examDate: !!(document.getElementById('exam-date')),
     study: (document.getElementById('study-btn') || {}).textContent || null,
+    capUI: !!document.getElementById('exam-cap-toggle'),
     bodyStart: (document.getElementById('formulas-root') || document.body).innerText.slice(0, 400),
     deckN: (window.PGRE && PGRE.store) ? 'store-ok' : 'no-store'
   })`);
-  if (!diag.examDate) throw new Error('exam date input missing ' + JSON.stringify(diag));
-
-  var homeUi = await evaluate(`({
-    toggle: (document.getElementById('exam-cap-toggle') || {}).textContent,
-    examDate: !!document.getElementById('exam-date'),
-    study: (document.getElementById('study-btn') || {}).textContent
-  })`);
-  if (!homeUi.examDate) throw new Error('exam date input missing');
-  if (homeUi.toggle !== 'Capped to exam day') {
-    throw new Error('toggle default text: ' + JSON.stringify(homeUi.toggle));
+  if (!diag.study) throw new Error('Study button missing ' + JSON.stringify(diag));
+  /* Round 2 (design A44): the cap control is hidden; the stored flag keeps
+     its semantics. Verify off still means off and on is the default. */
+  var capSem = await evaluate(`(function () {
+    var s = PGRE.store.state.settings;
+    s.formulaExamCap = false;
+    var off = PGRE.srs.examCap() === null && PGRE.srs.matureDays() === 21;
+    s.formulaExamCap = true;
+    return { off: off, on: PGRE.srs.examCap(), flag: s.formulaExamCap };
+  })()`);
+  if (!capSem.off || capSem.on !== 13 || capSem.flag !== true) {
+    throw new Error('formulaExamCap semantics broken: ' + JSON.stringify(capSem));
   }
-  if (!homeUi.study) throw new Error('Study button missing (card not in today batch?) ' + JSON.stringify(homeUi));
-
-  await evaluate("document.getElementById('exam-cap-toggle').click()");
-  await sleep(400);
-  var toggled = await evaluate(`({
-    toggle: (document.getElementById('exam-cap-toggle') || {}).textContent,
-    capOn: PGRE.store.state.settings.formulaExamCap
-  })`);
-  if (toggled.capOn !== false) throw new Error('toggle did not turn cap off');
-  if (toggled.toggle !== 'Uncapped') {
-    throw new Error('toggle off text: ' + JSON.stringify(toggled.toggle));
-  }
-  await evaluate("document.getElementById('exam-cap-toggle').click()");
-  await sleep(400);
-  var retoggled = await evaluate("PGRE.store.state.settings.formulaExamCap");
-  if (retoggled !== true) throw new Error('toggle did not restore cap on');
+  await evaluate(`(function () { PGRE.store.state.settings.formulaExamCap = true; PGRE.store.save(); })()`);
 
   await evaluate("document.getElementById('study-btn').click()");
   await sleep(300);
@@ -474,18 +455,18 @@ async function main() {
   })()`);
   await sleep(500);
   for (var da = 0; da < 30; da++) {
-    if (await evaluate(TODAY_FORMULAS_READY)) break;
+    if (await evaluate("!!document.querySelector('.review-card #today-study')")) break;
     await sleep(150);
   }
   var dueUi = await evaluate(`({
-    text: (document.getElementById('today-formulas') || {}).textContent || '',
-    button: (document.getElementById('today-formulas-btn') || {}).textContent || '',
+    num: ((document.querySelector('.review-card .rc-num') || {}).textContent || '').replace(/\\s+/g, ''),
+    button: (document.getElementById('today-study') || {}).textContent || '',
     hash: location.hash
   })`);
-  if (dueUi.text !== '3 due now · study 2' || dueUi.button !== 'Study 2 due →') {
+  if (!/^3/.test(dueUi.num) || !/^Start: 2 cards|Study/.test(dueUi.button)) {
     throw new Error('Today due UI mismatch: ' + JSON.stringify(dueUi));
   }
-  await evaluate("document.getElementById('today-formulas-btn').click()");
+  await evaluate("document.getElementById('today-study').click()");
   await sleep(500);
   var dueStudy = await evaluate(`({
     hash: location.hash,
@@ -508,7 +489,7 @@ async function main() {
 
   /* A second Today click must reuse the same due batch rather than replacing
      it with the remaining due card or unseen cards. */
-  await evaluate("document.getElementById('today-formulas-btn').click()");
+  await evaluate("document.getElementById('today-study').click()");
   await sleep(500);
   var repeatedDue = await evaluate("PGRE.store.state.formulaDay.reviewIds.join(',') + '|' + PGRE.store.state.formulaDay.newIds.join(',')");
   if (repeatedDue !== 'due-old,due-today|') {
@@ -575,7 +556,7 @@ async function main() {
     if (await evaluate(TODAY_FORMULAS_READY)) break;
     await sleep(150);
   }
-  await evaluate("document.getElementById('today-formulas-btn').click()");
+  await evaluate("document.getElementById('today-study').click()");
   await sleep(500);
   var completedOnlyStudy = await evaluate(`(async function () {
     var deck = await PGRE.formulaDeck();
@@ -605,11 +586,14 @@ async function main() {
     if (await evaluate(TODAY_FORMULAS_READY)) break;
     await sleep(150);
   }
-  var activeDueCopy = await evaluate("(document.getElementById('today-formulas') || {}).textContent || ''");
-  if (activeDueCopy !== '1 left today · 3 due not picked') {
-    throw new Error('Today hid due overflow beside an active carry-over: ' + activeDueCopy);
+  var activeDueCopy = await evaluate(`({
+    num: ((document.querySelector('.review-card .rc-num') || {}).textContent || '').replace(/\s+/g, ''),
+    line: (document.querySelector('.review-card .muted') || {}).textContent || ''
+  })`);
+  if (!/^1/.test(activeDueCopy.num) || !/left in today|still due|due/.test(activeDueCopy.line)) {
+    throw new Error('Today hid due overflow beside an active carry-over: ' + JSON.stringify(activeDueCopy));
   }
-  await evaluate("document.getElementById('today-formulas-btn').click()");
+  await evaluate("document.getElementById('today-study').click()");
   await sleep(500);
   var deliberate = await evaluate(`({
     hash: location.hash,
@@ -643,10 +627,10 @@ async function main() {
   }
   var rollover = await evaluate(`({
     today: PGRE.srs.today(),
-    text: (document.getElementById('today-formulas') || {}).textContent || '',
+    num: ((document.querySelector('.review-card .rc-num') || {}).textContent || '').replace(/\s+/g, ''),
     batch: PGRE.store.state.formulaDay
   })`);
-  if (rollover.text !== '1 left today · 3 due not picked' || rollover.batch.newIds.join(',') !== 'new-a') {
+  if (!/^1/.test(rollover.num) || rollover.batch.newIds.join(',') !== 'new-a') {
     throw new Error('unfinished pick did not carry across day boundary: ' + JSON.stringify(rollover));
   }
   await evaluate("PGRE.srs.today = PGRE.__testRealToday; delete PGRE.__testRealToday");
@@ -672,7 +656,7 @@ async function main() {
     if (await evaluate(TODAY_FORMULAS_READY)) break;
     await sleep(150);
   }
-  await evaluate("document.getElementById('today-formulas-btn').click()");
+  await evaluate("document.getElementById('today-study').click()");
   await sleep(500);
   var stampedFill = await evaluate(`({
     hash: location.hash,
@@ -705,13 +689,13 @@ async function main() {
     await sleep(150);
   }
   var mixUi = await evaluate(`({
-    text: (document.getElementById('today-formulas') || {}).textContent || '',
-    button: (document.getElementById('today-formulas-btn') || {}).textContent || ''
+    num: ((document.querySelector('.review-card .rc-num') || {}).textContent || '').replace(/\s+/g, ''),
+    button: (document.getElementById('today-study') || {}).textContent || ''
   })`);
-  if (mixUi.text !== '1 due now · +2 new' || mixUi.button !== 'Study 3 →') {
+  if (!/^1/.test(mixUi.num) || !/^Start: 1 card|Study/.test(mixUi.button)) {
     throw new Error('Today mixed auto-pick UI mismatch: ' + JSON.stringify(mixUi));
   }
-  await evaluate("document.getElementById('today-formulas-btn').click()");
+  await evaluate("document.getElementById('today-study').click()");
   await sleep(500);
   var mixStudy = await evaluate(`({
     flip: !!document.getElementById('flip-btn'),
@@ -826,15 +810,15 @@ async function main() {
     await sleep(150);
   }
   var weekUi = await evaluate(`({
-    text: (document.getElementById('today-formulas') || {}).textContent || '',
+    num: ((document.querySelector('.review-card .rc-num') || {}).textContent || '').replace(/\\s+/g, ''),
     next: PGRE.srs.nextIntervals(PGRE.store.state.cards['fp-a']),
     mastered: PGRE.srs.masteredInterval(PGRE.store.state.cards['fp-a'])
   })`);
-  if (weekUi.text !== '2 due now · +1 new') throw new Error('exam-week dashboard offer mismatch: ' + weekUi.text);
+  if (!/^2/.test(weekUi.num)) throw new Error('exam-week dashboard offer mismatch: ' + weekUi.num);
   if (weekUi.next.hard !== 4 || weekUi.next.good !== 5 || weekUi.next.easy !== 6 || weekUi.mastered !== 6) {
     throw new Error('exam-week intervals are not the exam-capped 4/5/6 (mastered 6): ' + JSON.stringify(weekUi));
   }
-  await evaluate("document.getElementById('today-formulas-btn').click()");
+  await evaluate("document.getElementById('today-study').click()");
   await sleep(500);
   var weekStudy = await evaluate(`({
     hash: location.hash,

@@ -79,14 +79,16 @@ async function helpers(page) {
     await page.open(URL);
     await wait('#main');
     await page.eval(function () { location.hash = '#/formulas'; if (PGRE.route) PGRE.route(); });
-    await wait('#formulas-root');
+    await wait('#formulas-root, #subj-root');
     for (var i = 0; i < 50; i++) {
-      if (await page.eval('!!document.querySelector(".formula-recall-band, #study-btn")')) return;
+      if (await page.eval('!!document.querySelector(".mem-grid, #study-btn")')) return;
       await sleep(100);
     }
     throw new Error('Timeout waiting for the Recall page');
   };
 
+  /* Round 2: the held-interval threshold shows in the Memory block's
+     "Held 3 weeks or more" tile sub-line — open the physics subject home. */
   h.seedAndShow = async function (daysOut) {
     await page.eval('() => { window.__solidDaysOut = ' + (+daysOut) + '; }');
     await page.eval(function () {
@@ -116,30 +118,19 @@ async function helpers(page) {
       if (PGRE.route) PGRE.route();
     });
     await sleep(250);
-    await page.eval(function () { location.hash = '#/formulas'; if (PGRE.route) PGRE.route(); });
-    await wait('.formula-recall-band');
-    await wait('#mem-stats-toggle');
-    if (await page.eval('!!document.getElementById("mem-stats-body") && document.getElementById("mem-stats-body").hidden')) {
-      await click('#mem-stats-toggle');
-    }
-    await wait('#mem-stats-body .mem-mix');
+    await page.eval(function () { location.hash = '#/subject/physics'; if (PGRE.route) PGRE.route(); });
+    await wait('#subj-root .mem-grid');
     await page.eval(function () {
-      var band = document.querySelector('.formula-recall-band');
-      if (band && band.scrollIntoView) band.scrollIntoView({ block: 'start' });
+      var mem = document.querySelector('#subj-root .mem-grid');
+      if (mem && mem.scrollIntoView) mem.scrollIntoView({ block: 'start' });
     });
   };
 
   h.panel = async function () {
     return JSON.parse(await page.eval(function () {
-      var solid = document.querySelector('.fr-seg-solid');
-      var young = document.querySelector('.fr-seg-young');
-      var mix = document.querySelector('.mem-mix');
-      var units = mix ? [].map.call(mix.querySelectorAll('.stat-unit'), function (el) {
-        return el.textContent.trim();
-      }) : [];
-      var tiles = mix ? [].map.call(mix.querySelectorAll('.stat-tile, .stat'), function (el) {
+      var tiles = [].map.call(document.querySelectorAll('.mem-grid .stat-tile'), function (el) {
         return el.textContent.replace(/\s+/g, ' ').trim();
-      }) : [];
+      });
       var matureOpt = document.querySelector('#fs-status-sel option[value="mature"]');
       var youngOpt = document.querySelector('#fs-status-sel option[value="young"]');
       return JSON.stringify({
@@ -147,24 +138,18 @@ async function helpers(page) {
         cap: PGRE.srs.examCap(),
         examDate: PGRE.store.state.settings.examDate,
         daysUntil: PGRE.srs.daysUntil(PGRE.store.state.settings.examDate),
-        solidTip: solid ? (solid.getAttribute('data-tip') || '') : '',
-        youngTip: young ? (young.getAttribute('data-tip') || '') : '',
-        units: units,
         tiles: tiles,
         matureChip: matureOpt ? matureOpt.textContent : '',
-        youngChip: youngOpt ? youngOpt.textContent : '',
-        kicker: (document.querySelector('.fr-kicker') || {}).textContent || ''
+        youngChip: youngOpt ? youngOpt.textContent : ''
       });
     }));
   };
 
   h.expectPanel = function (p, thresh, name) {
     h.assert(p.thresh === thresh, name + ': matureDays is ' + thresh + ' (got ' + p.thresh + ')');
-    h.assert(p.solidTip.indexOf('≥ ' + thresh + ' d') !== -1,
-      name + ': recall-bar tooltip names ≥ ' + thresh + ' d, got ' + JSON.stringify(p.solidTip));
-    h.assert(p.units.indexOf('≥ ' + thresh + ' d') !== -1 &&
-      p.units.indexOf('< ' + thresh + ' d') !== -1,
-      name + ': Memory stats units are ≥/' + '< ' + thresh + ' d, got ' + JSON.stringify(p.units));
+    var held = p.tiles.filter(function (t) { return /Held 3 weeks or more/.test(t); })[0] || '';
+    h.assert(held.indexOf('interval ≥ ' + thresh + ' d') !== -1,
+      name + ': the Held tile reads "interval ≥ ' + thresh + ' d", got ' + JSON.stringify(held));
   };
 
   return h;
@@ -185,19 +170,14 @@ var STAGES = [
       await h.seedAndShow(5);
       var p = await h.panel();
       h.expectPanel(p, 4, '5 days left');
-      await h.click('button.flash-tab[data-mode="search"]');
+      await page.eval(function () { location.hash = '#/formulas'; if (PGRE.route) PGRE.route(); });
+      await h.click('button.flash-tab[data-mode="browse"]');
       await h.wait('#fs-status-sel');
       p = await h.panel();
       h.assert(p.matureChip.indexOf('≥ 4 d') !== -1,
         'search Mature chip is Mature (≥ 4 d), got ' + p.matureChip);
       h.assert(p.youngChip.indexOf('< 4 d') !== -1,
         'search Young chip is Young (< 4 d), got ' + p.youngChip);
-      await h.click('button.flash-tab[data-mode="study"]');
-      await h.wait('.formula-recall-band');
-      if (await page.eval('!!document.getElementById("mem-stats-body") && document.getElementById("mem-stats-body").hidden')) {
-        await h.click('#mem-stats-toggle');
-        await h.wait('#mem-stats-body .mem-mix');
-      }
     } },
 
   { name: 'exam eve: threshold 1 d', shot: '03-recall-exam-eve-threshold-1d',

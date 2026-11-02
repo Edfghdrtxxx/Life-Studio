@@ -312,7 +312,7 @@ var STAGES = [
 
   { name: 'Search card browser', shot: '06-search',
     run: async function (page, h) {
-      await h.click('button.flash-tab[data-mode="search"]');
+      await h.click('button.flash-tab[data-mode="browse"]');
       await h.wait('article.fs-card[data-fsid="' + h.LINKED + '"]');
       var linked = await h.links('article.fs-card[data-fsid="' + h.LINKED + '"]');
       var unlinked = await h.links('article.fs-card[data-fsid="' + h.UNLINKED + '"]');
@@ -325,7 +325,9 @@ var STAGES = [
 
   { name: 'Match tiles stay without links',
     run: async function (page, h) {
-      await h.click('button.flash-tab[data-mode="match"]');
+      await h.click('button.flash-tab[data-mode="practice"]');
+      await h.wait('[data-game="match"]');
+      await h.click('[data-game="match"]');
       await h.wait('#game-start');
       await h.click('#game-start');
       await h.wait('.flash-tile');
@@ -337,7 +339,7 @@ var STAGES = [
 
   { name: 'narrow window', shot: '07-search-420', size: '420x860',
     run: async function (page, h) {
-      await h.click('button.flash-tab[data-mode="search"]');
+      await h.click('button.flash-tab[data-mode="browse"]');
       await h.wait('article.fs-card[data-fsid="' + h.TWO + '"]');
       var links = await h.links('article.fs-card[data-fsid="' + h.TWO + '"]');
       var sc = JSON.parse(await page.eval(function () {
