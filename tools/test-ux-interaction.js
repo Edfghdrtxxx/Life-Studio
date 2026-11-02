@@ -1428,7 +1428,9 @@ themeBtn.setAttribute('id', 'theme-toggle');
 env.document.body.appendChild(themeBtn);
 env.window.PGRE.applyTheme('dark');
 assert(themeBtn.getAttribute('aria-pressed') === 'true', 'applyTheme(dark) sets aria-pressed=true');
-assert(themeBtn.textContent.indexOf('Light') !== -1, 'applyTheme(dark) relabels the button immediately');
+assert(themeBtn.textContent === 'Theme', 'the theme button reads Theme (named themes in Settings)');
+assert((themeBtn.getAttribute('title') || '').indexOf('Theme:') === 0,
+  'applyTheme names the current theme in the button title');
 env.window.PGRE.applyTheme('light');
 assert(themeBtn.getAttribute('aria-pressed') === 'false', 'applyTheme(light) sets aria-pressed=false');
 

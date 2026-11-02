@@ -268,11 +268,18 @@ PGRE.views.formulas = (function () {
   function formulaSettingsHTML() {
     var ui = PGRE.ui, srs = PGRE.srs;
     var T = srs.clampTarget(PGRE.store.state.settings.formulaDailyTarget);
+    var N = srs.clampTarget(PGRE.store.state.settings.newCardsPerDay);
     var html = '<div class="target-stepper"><span class="target-label">Formulas per day</span>' +
       '<div class="target-controls">' +
       '<button class="btn btn-ghost stepper-btn" id="target-dec"' + (T <= 1 ? ' disabled' : '') + '>−</button>' +
       '<span class="target-value" id="target-value">' + T + '</span>' +
       '<button class="btn btn-ghost stepper-btn" id="target-inc"' + (T >= 100 ? ' disabled' : '') + '>+</button>' +
+      '</div></div>';
+    html += '<div class="target-stepper"><span class="target-label">New cards per day</span>' +
+      '<div class="target-controls">' +
+      '<button class="btn btn-ghost stepper-btn" id="newday-dec"' + (N <= 1 ? ' disabled' : '') + '>−</button>' +
+      '<span class="target-value" id="newday-value">' + N + '</span>' +
+      '<button class="btn btn-ghost stepper-btn" id="newday-inc"' + (N >= 100 ? ' disabled' : '') + '>+</button>' +
       '</div></div>';
     html += '<div class="exam-day-row"><span class="exam-day-label">Exam day</span>' +
       '<input type="date" id="exam-date" class="exam-date-input" value="' +
@@ -299,6 +306,19 @@ PGRE.views.formulas = (function () {
 
   function wireOptionsExtra() {
     wireStepper();
+    // Life Studio: the new-cards-per-day cap (srs.suggestFormulaDay reads it).
+    function stepNew(d) {
+      var cur = PGRE.srs.clampTarget(PGRE.store.state.settings.newCardsPerDay);
+      var next = PGRE.srs.clampTarget(cur + d);
+      if (next === cur) return;
+      PGRE.store.state.settings.newCardsPerDay = next;
+      PGRE.store.save();
+      renderHome();
+    }
+    var ndec = document.getElementById('newday-dec');
+    var ninc = document.getElementById('newday-inc');
+    if (ndec) ndec.addEventListener('click', function () { stepNew(-1); });
+    if (ninc) ninc.addEventListener('click', function () { stepNew(1); });
     var ed = document.getElementById('exam-date');
     if (ed) ed.addEventListener('change', function () {
       PGRE.store.state.settings.examDate = ed.value;
@@ -330,11 +350,13 @@ PGRE.views.formulas = (function () {
 
   function tabsBarHTML() {
     var empty = !deck.length;
-    var tabs = [['study', 'Study'], ['match', 'Match'], ['type', 'Type'],
+    var tabs = [['study', 'Study'], ['cards', 'Cards'], ['match', 'Match'], ['type', 'Type'],
                 ['quiz', 'Quiz'], ['cloze', 'Cloze'], ['visual', 'Lab'], ['search', 'Search']];
     var html = '<div class="flash-tabs-bar"><div class="flash-tabs" role="tablist">';
     tabs.forEach(function (t) {
-      var dis = empty && t[0] !== 'study';
+      // The Cards editor works on an empty deck: new subjects start empty
+      // and the student writes their first card there (Life Studio).
+      var dis = empty && t[0] !== 'study' && t[0] !== 'cards';
       var extra = '';
       if (t[0] === 'visual') {
         extra = ' title="Interactive Formula Visualizer Laboratory" aria-label="Visualizer Lab"';
@@ -593,10 +615,179 @@ PGRE.views.formulas = (function () {
   }
 
   function renderMode() {
+    if (mode === 'cards') return renderCardEditor();
     if (mode === 'match' || mode === 'type' || mode === 'quiz' || mode === 'cloze') return renderGameIntro(mode);
     if (mode === 'visual') return renderVisualizerLab();
     if (mode === 'search') return renderSearch();
     return renderHome();
+  }
+
+  /* ——— Cards tab (Life Studio): the in-app editor for the student's own
+     cards. Form: subject, front, back, optional note — KaTeX typesets
+     $...$ in the live preview. Create/edit/delete all go through
+     PGRE.userCardOps (js/user-cards.js): ids user-<tag>-<n> never change,
+     deletes are tombstoned. The deck reloads after each write so Study,
+     Browse and the games see the card at once. ——— */
+  var editorOpen = null;   // card id being edited; null = new-card form
+
+  function editorSubjectOptions(sel) {
+    var html = '';
+    (PGRE.SUBJECTS || []).forEach(function (s) {
+      html += '<option value="' + PGRE.ui.esc(s.id) + '"' +
+        (s.id === sel ? ' selected' : '') + '>' + PGRE.ui.esc(s.name) + '</option>';
+    });
+    return html;
+  }
+
+  function editorFormHTML(card) {
+    var ui = PGRE.ui;
+    var c = card || {};
+    var subject = c.subject || 'physics';
+    var idTag = c.id ? '<span class="uec-id muted">' + ui.esc(c.id) + '</span>' : '';
+    return '<div class="card uec-form" id="uec-form">' +
+      '<div class="band-head"><h2>' + (c.id ? 'Edit card' : 'New card') + ' ' + idTag + '</h2></div>' +
+      '<div class="uec-row"><label class="exam-day-label" for="uec-subject">Subject</label>' +
+        '<select id="uec-subject">' + editorSubjectOptions(subject) + '</select>' +
+        (c.id ? '<p class="muted uec-hint">The subject can change; the id stays — its schedule keeps working.</p>' : '') +
+      '</div>' +
+      '<div class="uec-row"><label class="exam-day-label" for="uec-front">Front — the question</label>' +
+        '<textarea id="uec-front" rows="3" placeholder="e.g. The force between two charges $q_1$, $q_2$ at distance $r$">' +
+        ui.esc(c.front || '') + '</textarea></div>' +
+      '<div class="uec-row"><label class="exam-day-label" for="uec-back">Back — the answer</label>' +
+        '<textarea id="uec-back" rows="3" placeholder="e.g. $$F = \\frac{q_1 q_2}{4\\pi\\varepsilon_0 r^2}$$">' +
+        ui.esc(c.back || '') + '</textarea></div>' +
+      '<div class="uec-row"><label class="exam-day-label" for="uec-note">Note <span class="muted">(optional)</span></label>' +
+        '<textarea id="uec-note" rows="2" placeholder="A memory hook, a trap, a limiting case">' +
+        ui.esc(c.note || '') + '</textarea></div>' +
+      '<div class="uec-preview"><div class="exam-day-label">Preview</div>' +
+        '<div class="fcard-front" id="uec-pv-front"></div>' +
+        '<div class="fcard-back" id="uec-pv-back"></div></div>' +
+      '<p class="uec-error" id="uec-error" role="alert" hidden></p>' +
+      '<div class="btn-row">' +
+        '<button class="btn btn-primary" id="uec-save">' + (c.id ? 'Save changes' : 'Add card') + '</button>' +
+        (c.id ? '<button class="btn btn-ghost" id="uec-cancel">Done editing</button>' : '') +
+      '</div></div>';
+  }
+
+  function editorListHTML() {
+    var ui = PGRE.ui, ops = PGRE.userCardOps;
+    var cards = ops ? ops.list() : [];
+    if (!cards.length) {
+      return '<div class="card"><h2>Your cards</h2>' +
+        '<p class="muted">None yet. Write one above — it joins today’s queue under ' +
+        'its subject and is graded with the same Again / Hard / Good / Easy scheduler.</p></div>';
+    }
+    var groups = {}, order = [];
+    cards.forEach(function (c) {
+      var sid = PGRE.cardSubject ? PGRE.cardSubject(c) : 'physics';
+      if (!groups[sid]) { groups[sid] = []; order.push(sid); }
+      groups[sid].push(c);
+    });
+    var html = '<div class="card"><h2>Your cards</h2>';
+    order.forEach(function (sid) {
+      html += '<h3 class="uec-group">' + ui.esc(PGRE.subjectName(sid)) + '</h3>';
+      groups[sid].forEach(function (c) {
+        var st = PGRE.srs.cardState(c.id), chip = '';
+        if (st) {
+          var du = PGRE.srs.daysUntil(st.due);
+          chip = '<span class="due-chip' + (du <= 0 ? ' due-now' : '') + '">' +
+            (du <= 0 ? 'due now' : 'due in ' + PGRE.srs.ivlLabel(du)) + '</span>';
+        } else {
+          chip = '<span class="due-chip">new</span>';
+        }
+        html += '<div class="browse-row uec-row-item" data-uec="' + ui.esc(c.id) + '">' +
+          '<span class="deck-name">' + ui.esc(cardName(c)) + '</span>' +
+          '<span class="browse-chips">' + chip + '</span>' +
+          '<button type="button" class="btn btn-ghost btn-sm uec-edit" data-uec-edit="' + ui.esc(c.id) + '">Edit</button>' +
+          '<button type="button" class="btn btn-ghost btn-sm uec-del" data-uec-del="' + ui.esc(c.id) + '">Delete</button>' +
+          '</div>';
+      });
+    });
+    return html + '</div>';
+  }
+
+  function renderCardEditor() {
+    setMasthead('');
+    teardownGame();
+    if (PGRE.nav) PGRE.nav.setTrail([{ label: 'Cards' }]);
+    var ops = PGRE.userCardOps;
+    var editing = editorOpen && ops ? ops.byId(editorOpen) : null;
+    if (editorOpen && !editing) editorOpen = null;
+    body().innerHTML = editorFormHTML(editing) + editorListHTML();
+    fillOptionsExtra('');
+    updateEditorPreview();
+    ['uec-front', 'uec-back'].forEach(function (id) {
+      var ta = document.getElementById(id);
+      if (ta) ta.addEventListener('input', updateEditorPreview);
+    });
+    var save = document.getElementById('uec-save');
+    if (save) save.addEventListener('click', saveEditorCard);
+    var cancel = document.getElementById('uec-cancel');
+    if (cancel) cancel.addEventListener('click', function () {
+      editorOpen = null;
+      renderCardEditor();
+    });
+    body().querySelectorAll('.uec-edit').forEach(function (b) {
+      b.addEventListener('click', function () {
+        editorOpen = b.getAttribute('data-uec-edit');
+        renderCardEditor();
+        var form = document.getElementById('uec-form');
+        if (form && form.scrollIntoView) form.scrollIntoView({ block: 'nearest' });
+      });
+    });
+    body().querySelectorAll('.uec-del').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var id = b.getAttribute('data-uec-del');
+        var c = ops.byId(id);
+        if (!c) return;
+        if (!confirm('Delete "' + cardName(c) + '"? Its review history is kept, but the card leaves every queue.')) return;
+        if (ops.remove(id)) {
+          if (editorOpen === id) editorOpen = null;
+          reloadDeck(renderCardEditor);
+        }
+      });
+    });
+  }
+
+  function updateEditorPreview() {
+    var f = document.getElementById('uec-front'), b = document.getElementById('uec-back');
+    var pf = document.getElementById('uec-pv-front'), pb = document.getElementById('uec-pv-back');
+    if (!f || !b || !pf || !pb) return;
+    pf.innerHTML = formulaHTML(f.value) || '<span class="muted">The question shows here.</span>';
+    pb.innerHTML = formulaHTML(b.value) || '<span class="muted">The answer shows here.</span>';
+    PGRE.typesetMath(document.getElementById('uec-form'));
+  }
+
+  function saveEditorCard() {
+    var err = document.getElementById('uec-error');
+    function fail(msg) {
+      if (err) { err.textContent = msg; err.hidden = false; }
+      if (PGRE.toast) PGRE.toast(msg, 'error');
+    }
+    var res = PGRE.userCardOps.save({
+      id: editorOpen || undefined,
+      subject: (document.getElementById('uec-subject') || {}).value,
+      front: (document.getElementById('uec-front') || {}).value,
+      back: (document.getElementById('uec-back') || {}).value,
+      note: (document.getElementById('uec-note') || {}).value
+    });
+    if (!res.ok) { fail(res.error || 'The card could not be saved.'); return; }
+    if (PGRE.toast) PGRE.toast('Card saved — ' + res.card.id, 'info');
+    editorOpen = res.card.id;
+    reloadDeck(renderCardEditor);
+  }
+
+  /* The deck is built from committed sources; a saved user card only joins it
+     on a fresh read, so the editor reloads after each write. */
+  function reloadDeck(after) {
+    PGRE.formulaDeck().then(function (d) {
+      deck = d;
+      PGRE.deck = d;
+      lastDeckStatus = (PGRE.formulaDeckStatus && typeof PGRE.formulaDeckStatus === 'object')
+        ? PGRE.formulaDeckStatus : null;
+      if (PGRE.refreshNavBadges) PGRE.refreshNavBadges();
+      after();
+    });
   }
 
   function renderVisualizerLab() {
@@ -783,32 +974,50 @@ PGRE.views.formulas = (function () {
     return html;
   }
 
+  /* Life Studio — the study-session subject filter (settings.recallSubject).
+     The daily batch stays one mixed list; the filter only narrows which of
+     its cards the Study flow serves and which fresh picks are suggested. */
+  function subjectFilter() {
+    var f = PGRE.store.state.settings && PGRE.store.state.settings.recallSubject;
+    return (f && f !== 'all' && PGRE.subjectById && PGRE.subjectById(f)) ? f : 'all';
+  }
+  function subjectFiltered(cards) {
+    var f = subjectFilter();
+    if (f === 'all' || !PGRE.cardSubject) return cards;
+    return (cards || []).filter(function (c) { return PGRE.cardSubject(c) === f; });
+  }
+
   /* ——— Today card: one line on what Study will do, one primary button ———
      remaining = cards still owed from the saved list. When nothing remains the
      Study button takes the auto-pick (srs.suggestFormulaDay: due reviews
-     first, then new cards in book order, up to the daily target). */
+     first, then new cards in book order, up to the daily target). A subject
+     filter narrows both to that subject. */
   function todayState() {
     var srs = PGRE.srs;
+    var subject = subjectFilter();
     var batch = srs.formulaDay(deck);
-    var remaining = srs.formulaDayRemaining(deck);
+    var remaining = subjectFiltered(srs.formulaDayRemaining(deck));
     var done = 0, unseen = 0, left = Object.create(null);
     remaining.forEach(function (c) { left[c.id] = 1; });
     batch.reviewIds.concat(batch.newIds).forEach(function (id) {
       if (!left[id] && srs.studiedToday(srs.cardState(id))) done++;
     });
     deck.forEach(function (c) {
-      if (!srs.cardState(c.id) && !srs.isSuspended(c.id)) unseen++;
+      if (!srs.cardState(c.id) && !srs.isSuspended(c.id) &&
+          (subject === 'all' || PGRE.cardSubject(c) === subject)) unseen++;
     });
     var remNew = remaining.filter(function (c) { return !srs.cardState(c.id); }).length;
     return {
       target: srs.clampTarget(PGRE.store.state.settings.formulaDailyTarget),
+      subject: subject,
       remaining: remaining,
       remReviews: remaining.length - remNew,
       remNew: remNew,
       done: done,
       unseen: unseen,
-      postponed: srs.formulaDayPostponed(deck),
-      sug: remaining.length ? { reviewIds: [], newIds: [] } : srs.suggestFormulaDay(deck),
+      postponed: postponedOverdue(subject).ids.length,
+      sug: remaining.length ? { reviewIds: [], newIds: [] }
+                            : srs.suggestFormulaDay(deck, { subject: subject }),
       resume: rehydrateSavedStudy(),
       adhoc: savedStudyIsAdhoc()
     };
@@ -822,8 +1031,9 @@ PGRE.views.formulas = (function () {
       Array.isArray(saved.queueIds) && saved.queueIds.length);
   }
 
-  /* Due reviews that are not in today's batch, oldest first. */
-  function postponedOverdue() {
+  /* Due reviews that are not in today's batch, oldest first. With a subject
+     arg ('all' or a PGRE.SUBJECTS id) only that subject's overdue count. */
+  function postponedOverdue(subject) {
     var srs = PGRE.srs;
     var batch = srs.formulaDay(deck);
     var inB = Object.create(null);
@@ -831,6 +1041,8 @@ PGRE.views.formulas = (function () {
     var ids = [], age = 0;
     deck.forEach(function (c) {
       if (!c || inB[c.id] || srs.isSuspended(c.id)) return;
+      if (subject && subject !== 'all' && PGRE.cardSubject &&
+          PGRE.cardSubject(c) !== subject) return;
       var st = srs.cardState(c.id);
       if (!st || !st.due) return;
       var du = srs.daysUntil(st.due);
@@ -889,6 +1101,19 @@ PGRE.views.formulas = (function () {
     return parts.join(' + ');
   }
 
+  /* Subject <select> for the Today card (Life Studio). 'all' plus every
+     registered subject; the choice persists in settings.recallSubject. */
+  function subjectSelectHTML(t) {
+    var opts = '<option value="all"' + (t.subject === 'all' ? ' selected' : '') +
+      '>All subjects</option>';
+    (PGRE.SUBJECTS || []).forEach(function (s) {
+      opts += '<option value="' + PGRE.ui.esc(s.id) + '"' +
+        (t.subject === s.id ? ' selected' : '') + '>' + PGRE.ui.esc(s.name) + '</option>';
+    });
+    return '<label class="subject-filter"><span class="exam-day-label">Subject</span>' +
+      '<select id="subject-filter">' + opts + '</select></label>';
+  }
+
   function todayCardHTML(t, readyHTML) {
     var sugR = t.sug.reviewIds.length, sugN = t.sug.newIds.length, sugAll = sugR + sugN;
     var backlog = t.postponed - sugR;
@@ -922,7 +1147,7 @@ PGRE.views.formulas = (function () {
       if (t.postponed) {
         line += ' ' + t.postponed + ' more due ' + (t.postponed === 1 ? 'is' : 'are') +
           ' not in the list.';
-        var late = postponedOverdue();
+        var late = postponedOverdue(t.subject);
         if (late.age > 0) {
           line += ' Oldest overdue: ' + late.age + ' day' + (late.age === 1 ? '' : 's') + '.';
         }
@@ -945,6 +1170,7 @@ PGRE.views.formulas = (function () {
       line = 'Nothing is due and every card has been introduced.';
     }
     return '<div class="card fm-landing"><h2 class="fm-today-title">' + title + '</h2>' +
+      subjectSelectHTML(t) +
       '<p class="muted fm-today-line">' + line + '</p>' +
       '<div class="btn-row">' + buttons + '</div>' + (readyHTML || '') + '</div>';
   }
@@ -965,10 +1191,11 @@ PGRE.views.formulas = (function () {
     }
     if (live && saved.dayBound === false && !opts.replace) return false;
     if (sessionHeld) return false;
-    var cards = PGRE.srs.formulaDayRemaining(deck);
+    var subject = subjectFilter();
+    var cards = subjectFiltered(PGRE.srs.formulaDayRemaining(deck));
     if (!cards.length && opts.fill && PGRE.srs.autoFillFormulaDay) {
-      PGRE.srs.autoFillFormulaDay(deck);
-      cards = PGRE.srs.formulaDayRemaining(deck);
+      PGRE.srs.autoFillFormulaDay(deck, { subject: subject });
+      cards = subjectFiltered(PGRE.srs.formulaDayRemaining(deck));
     }
     if (!cards.length) return false;
     startStudy(cards, true);
@@ -1098,9 +1325,16 @@ PGRE.views.formulas = (function () {
     });
     var addLate = document.getElementById('add-overdue-btn');
     if (addLate) addLate.addEventListener('click', function () {
-      var late = postponedOverdue();
+      var late = postponedOverdue(subjectFilter());
       if (!late.ids.length || !PGRE.srs.addFormulaDaySoft) return;
       PGRE.srs.addFormulaDaySoft(deck, late.ids);
+      renderHome();
+    });
+    // Life Studio: the subject filter repaints home (queue, counts, picks).
+    var sf = document.getElementById('subject-filter');
+    if (sf) sf.addEventListener('change', function () {
+      PGRE.store.state.settings.recallSubject = sf.value;
+      PGRE.store.save();
       renderHome();
     });
     var readyBtn = document.getElementById('readiness-choose');

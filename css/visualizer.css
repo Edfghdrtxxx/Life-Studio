@@ -90,11 +90,15 @@
   box-shadow: none;
 }
 [data-theme="dark"] .card .viz-open-strip .btn-ghost,
-[data-theme="dark"] .viz-open-strip .viz-nav-btn {
+[data-dark] .card .viz-open-strip .btn-ghost,
+[data-theme="dark"] .viz-open-strip .viz-nav-btn,
+[data-dark] .viz-open-strip .viz-nav-btn {
   border-color: var(--line, #33312d);
 }
 [data-theme="dark"] .card .viz-open-strip .btn-ghost:hover,
-[data-theme="dark"] .viz-open-strip .viz-nav-btn:hover {
+[data-dark] .card .viz-open-strip .btn-ghost:hover,
+[data-theme="dark"] .viz-open-strip .viz-nav-btn:hover,
+[data-dark] .viz-open-strip .viz-nav-btn:hover {
   background: var(--ivory, #2c2a26);
   border-color: var(--ink-3, #807d76);
 }

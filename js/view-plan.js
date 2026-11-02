@@ -3,6 +3,44 @@
 window.PGRE = window.PGRE || {};
 PGRE.views = PGRE.views || {};
 
+/* Prep runway: one segment per plan week from the first plan week to exam
+   week. Past weeks are solid, the current week fills by the day, later
+   weeks are track. Each segment carries a chart-tip with its dates and
+   focus. Moved from the dashboard for Life Studio phase 1. */
+PGRE.planRunwayHTML = function () {
+    var ui = PGRE.ui;
+    var weeks = PGRE.planWeeks ? PGRE.planWeeks() : [];
+    if (!weeks.length) return '';
+    var today = PGRE.store.today();
+    var nowIdx = -1;
+    var segs = '';
+    weeks.forEach(function (pw, i) {
+      var w = pw.week;
+      var cls = 'runway-wk';
+      var fill = '';
+      if (today > w.end) cls += ' is-past';
+      else if (today >= w.start) {
+        cls += ' is-now';
+        nowIdx = i;
+        var day = Math.round((new Date(today + 'T12:00:00') - new Date(w.start + 'T12:00:00')) / 86400000);
+        fill = ' style="--wk-fill:' + Math.round(100 * (day + 1) / 7) + '%"';
+      }
+      segs += '<span class="' + cls + '"' + fill + ' tabindex="0" data-tip="' +
+        ui.esc(ui.dateRange(w.start, w.end) + '\n' + w.title) + '"></span>';
+    });
+    var short = function (iso) {
+      return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+    var last = weeks[weeks.length - 1].week;
+    var meta = nowIdx >= 0
+      ? 'Week ' + (nowIdx + 1) + ' of ' + weeks.length
+      : (today < weeks[0].week.start ? 'Plan starts ' + short(weeks[0].week.start) : 'Plan complete');
+    var side = (nowIdx >= 0 && nowIdx < weeks.length - 1) ? 'Exam week starts ' + short(last.start) : '';
+    return '<div class="runway">' +
+      '<div class="runway-track" role="img" aria-label="' + ui.esc(meta + (side ? ', ' + side : '')) + '">' + segs + '</div>' +
+      '<div class="runway-meta"><span>' + meta + '</span>' + (side ? '<span>' + side + '</span>' : '') + '</div>' +
+    '</div>';
+};
 PGRE.views.plan = (function () {
 
   function weekProgress(w) {
@@ -37,6 +75,11 @@ PGRE.views.plan = (function () {
       }) + '</div>' +
       '<div class="hero-right"><div class="countdown"><div class="countdown-num">' + days + '</div>' +
       '<div class="countdown-label">day' + (days === 1 ? '' : 's') + ' to go</div></div></div></div>';
+    // Life Studio: the countdown-era surfaces live here behind the More
+    // menu — the dashboard no longer shows them. The runway is the same
+    // week-track the dashboard used to render (PGRE.planRunwayHTML below).
+    html += PGRE.planRunwayHTML ? PGRE.planRunwayHTML() : '';
+
 
     PGRE.PLAN.forEach(function (phase) {
       var phTasks = 0, phDone = 0;

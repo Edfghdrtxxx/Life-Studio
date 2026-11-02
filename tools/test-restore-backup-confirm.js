@@ -125,9 +125,10 @@ function seed(tab) {
 
 console.log('\nindex.html cache token for view-content.js');
 var tokenMatch = indexHtml.match(/<script src="js\/view-content\.js\?v=([^"]+)"/);
-assert(tokenMatch && tokenMatch[1] === '20261020b',
-  'view-content.js cache token is 20261020b, got ' + (tokenMatch ? tokenMatch[1] : 'none'));
-assert(indexHtml.indexOf('js/view-content.js?v=20261020a') < 0,
+assert(tokenMatch && tokenMatch[1] === '20261102a',
+  'view-content.js cache token is 20261102a, got ' + (tokenMatch ? tokenMatch[1] : 'none'));
+assert(indexHtml.indexOf('js/view-content.js?v=20261020b') < 0 &&
+       indexHtml.indexOf('js/view-content.js?v=20261020a') < 0,
   'the previous view-content.js cache token is gone');
 
 console.log('\nCancel leaves the saved state untouched');

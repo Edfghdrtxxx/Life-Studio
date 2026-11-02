@@ -233,7 +233,8 @@
   font-size: 16px;
   line-height: 1.6;
 }
-[data-theme="dark"] .cv-slit {
+[data-theme="dark"] .cv-slit,
+[data-dark] .cv-slit {
   --ray: #6FA8EC;
   --extra: #F08A62;
   --curve: #A39CF0;

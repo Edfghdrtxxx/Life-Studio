@@ -1,0 +1,102 @@
+/* Life Studio phase 1 — subjects, card editor, theme picker.
+   Kept out of style.css: that file's token blocks are owned by the theme
+   workstream; everything below is new surface area. */
+
+/* ——— Recall: subject filter (the mixed queue stays one queue) ——— */
+.subject-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.subject-filter select {
+  font: inherit;
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+}
+
+/* ——— Cards tab: the student's own editor ——— */
+.uec-form { max-width: 46rem; }
+.uec-row { margin-bottom: 1rem; }
+.uec-row textarea,
+.uec-row select {
+  width: 100%;
+  font: inherit;
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+  box-sizing: border-box;
+}
+.uec-row textarea { resize: vertical; }
+.uec-hint { margin: 0.35rem 0 0; font-size: 0.85rem; }
+.uec-id { font-size: 0.8rem; }
+.uec-preview {
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  margin: 0.5rem 0 1rem;
+  background: var(--surface);
+}
+.uec-error { color: var(--error, #b3402f); margin: 0.4rem 0; }
+.uec-group {
+  margin: 1.4rem 0 0.5rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.uec-row-item { gap: 0.5rem; }
+
+/* ——— Settings: theme picker ——— */
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.9rem;
+  margin-top: 0.8rem;
+}
+.theme-swatch {
+  font: inherit;
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.theme-swatch:hover { border-color: var(--accent); }
+.theme-swatch.is-current {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.theme-swatch-page {
+  display: block;
+  height: 84px;
+  padding: 10px 12px;
+  box-sizing: border-box;
+}
+.theme-swatch-bar {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  margin-bottom: 10px;
+  width: 34%;
+}
+.theme-swatch-line {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  margin-bottom: 7px;
+}
+.theme-swatch-name {
+  display: block;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.85rem;
+}
+.theme-swatch-on { color: var(--accent); font-weight: 600; }

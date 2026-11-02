@@ -1589,7 +1589,9 @@ a.crumb:hover { color: var(--ink); text-decoration: none; }
   opacity: 0;
 }
 [data-theme="dark"] .hist-drill-open::after,
-[data-theme="dark"] .hist-set-open::after {
+[data-dark] .hist-drill-open::after,
+[data-theme="dark"] .hist-set-open::after,
+[data-dark] .hist-set-open::after {
   background-image: linear-gradient(105deg,
     transparent 0%,
     rgba(255, 255, 255, 0.28) 50%,
@@ -3193,7 +3195,8 @@ body.exam-fullscreen { overflow: hidden; height: 100%; }
 }
 .assess-row .assess-chip.assess-stuck.active { color: var(--bad); }
 .assess-row .assess-chip.assess-stuck .key-hint { border-color: currentColor; color: inherit; opacity: .7; }
-[data-theme="dark"] .assess-chip.active::before {
+[data-theme="dark"] .assess-chip.active::before,
+[data-dark] .assess-chip.active::before {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2 5.2l2.1 2.1L8 3.2' fill='none' stroke='%23181715' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 /* Review-window strip (review-result pages only, PGRE.assess html review):
@@ -4752,7 +4755,8 @@ body.exam-fullscreen { overflow: hidden; height: 100%; }
   display: flex; align-items: center; justify-content: center;
   --fp-ion: #5db8a6;                      /* --accent-teal; js/focus-fx.js reads this for electrons */
 }
-[data-theme="dark"] .focus-page {
+[data-theme="dark"] .focus-page,
+[data-dark] .focus-page {
   --fp-ion: #5db8a6;
 }
 /* clean ground — no graph paper; soft radial glow only while running */
@@ -6944,6 +6948,7 @@ button.btn-ok {
    theme maps it to its own --ink-2, 5.8:1). */
 :root { --ink-meta: #66645e; }
 :root[data-theme="dark"] { --ink-meta: #a09d96; }
+:root[data-dark] { --ink-meta: var(--ink-2); }
 :where(.brand-sub, .nav-tree-toggle, .nav-weight, .origin-line, .focus-time,
   .parked-dismiss, .meter-chrome-meta, .stat-unit, .dash-qotd-date, .practice-keys,
   .key-hint, .act-time, .weight-chip, .week-meta, .task-meta, .week-links-label,
@@ -7627,7 +7632,8 @@ body.sidebar-folded .topbar-arrow.sbs-open { display: inline-flex; }
 .sbs-row[aria-selected="true"] { background: var(--accent-tint); }
 /* On dark, --accent-tint is --ivory: one step above the panel, too faint for
    the row the keyboard is on. Take the ladder's next step. */
-[data-theme="dark"] .sbs-row[aria-selected="true"] { background: var(--line); }
+[data-theme="dark"] .sbs-row[aria-selected="true"],
+[data-dark] .sbs-row[aria-selected="true"] { background: var(--line); }
 .sbs-lead {
   flex: 0 0 26px;
   display: inline-flex;
@@ -7795,6 +7801,265 @@ body.sidebar-folded .topbar-arrow.sbs-open { display: inline-flex; }
   --btn-primary-hover: #e8e0d2;  /* cream controls step one cream down */
   --scrim: rgba(20, 20, 19, 0.6);          /* warm ink, not pure black */
   --shadow: rgba(20, 20, 19, 0.45);        /* EXT: same geometry, higher alpha to read on #181715 */
+}
+
+/* ==================================================================
+   NAMED THEMES — [data-theme="…"] token overrides.
+   Eight named palettes ship (PGRE.THEMES): "cream" is :root itself,
+   "dark" is the warm-dark block above, and the six blocks below each
+   carry the full token union so every rule above re-derives untouched.
+   Each theme names its own ladder hue and accent hue; status, medal and
+   heat tokens follow the SAME construction as cream/dark (a status hue
+   moved along the luminance axis until it clears 4.5:1 on its tint and
+   on --surface, a tint = the hue flattened at ~10% onto the surface,
+   a heat ramp = surface/ivory stepped into the accent).
+   Ratios on the lines below are measured WCAG figures — verified by
+   tools/check-theme-contrast.js, not guesses.
+   ================================================================== */
+
+/* PAPER AND INK — default for new users. Cool-neutral press-paper
+   floor, near-black ink, muted blue-black accent; no coral anywhere. */
+[data-theme="paper"] {
+  --bg: #f7f6f2;                 /* paper-100 — the canvas, cooler than cream-50 */
+  --floor: #f1efeb;              /* page floor */
+  --panel: #f1efeb;              /* = --floor, same convention as cream */
+  --surface: #f7f6f2;            /* cards lift one step above the floor */
+  --ivory: #e9e7e1;              /* paper-300 — the ladder's next step down */
+  /* Cool ink ramp. --ink-3 stays ≥ 4:1 — captions only, never body copy. */
+  --ink: #1a1b1c;                /* 15.95:1 on --surface */
+  --ink-2: #565c61;              /* 6.27:1 on --surface */
+  --ink-3: #6f757a;              /* 4.31:1 on --surface */
+  --line: #dcd8cf;               /* border-hairline, neutral-cool */
+  --accent: #2c4a58;             /* ink-blue — fills, borders, rings; never small text */
+  --accent-deep: #223a46;        /* accent stepped toward ink — the TEXT form (11.02:1) */
+  --accent-tint: #dfe3e4;        /* accent flattened ~10% onto the surface */
+  --accent-track: #dcd8cf;       /* = --line: neutral meter track, mirroring cream */
+  --good: #2f6b3e;               /* green darkened to 5.90:1 on --surface, 5.25:1 on its tint */
+  --good-tint: #e4ebe2;
+  --bad: #a83030;                /* red darkened to 6.20:1 on --surface, 5.43:1 on its tint */
+  --bad-tint: #f3e4e2;
+  /* Medal ramp — same mapping as cream, hue-matched neutrals. */
+  --bronze: #7a5c33;
+  --silver: #9aa0a3;             /* decorative only, not for text */
+  --gold: #b8860b;               /* decorative dot */
+  --platinum: #3d7e74;           /* teal, decorative */
+  --platinum-tint: #e2ecea;
+  --platinum-deep: #2a5f57;      /* the TEXT form — 6.76:1 on --surface, 6.06:1 on its tint */
+  --amber: #7a5b0e;              /* 5.83:1 on --surface, 5.24:1 on its tint */
+  --amber-tint: #f0ead6;
+  /* Heat ramp: ivory → ink-blue, same single-hue construction as cream. */
+  --heat-0: var(--ivory);
+  --heat-1: #d5dcdf;
+  --heat-2: #a9bfc8;
+  --heat-3: #5f8a99;
+  --heat-4: #2c4a58;
+  --heat-edge: rgba(26, 27, 28, 0.05);     /* ink at the system's hairline alpha */
+  --on-accent: #ffffff;          /* 9.43:1 on --accent — white is legal on this deep a fill */
+  --btn-primary-hover: #1a1b1c;  /* = --ink: press is a one-step colour move */
+  --scrim: rgba(26, 27, 28, 0.44);         /* theme ink, not pure black */
+  --shadow: rgba(26, 27, 28, 0.08);        /* the system's single shadow alpha */
+}
+
+/* SAGE FOREST — muted green-tinted surfaces, deep forest-green accent. */
+[data-theme="sage"] {
+  --bg: #f4f5ef;                 /* sage-50 — canvas, green-warm white */
+  --floor: #eaebe0;              /* page floor */
+  --panel: #eaebe0;              /* = --floor */
+  --surface: #f4f5ef;            /* cards lift one step above the floor */
+  --ivory: #e0e2d3;              /* sage-300 — the ladder's next step down */
+  --ink: #141813;                /* green-black — 16.37:1 on --surface */
+  --ink-2: #54604f;              /* 6.06:1 on --surface */
+  --ink-3: #6e7966;              /* 4.17:1 on --surface — captions only */
+  --line: #d4d6c3;               /* border-hairline, mossed */
+  --accent: #4a6f3e;             /* forest green — fills, borders, rings; never small text */
+  --accent-deep: #355229;        /* accent stepped toward ink — the TEXT form (8.01:1) */
+  --accent-tint: #dde3d2;        /* accent flattened ~10% onto the surface */
+  --accent-track: #d4d6c3;       /* = --line */
+  --good: #2f6b3e;               /* 5.82:1 on --surface, 5.18:1 on its tint */
+  --good-tint: #e2eadd;
+  --bad: #9c3535;                /* 6.44:1 on --surface, 5.59:1 on its tint */
+  --bad-tint: #f0e2dd;
+  --bronze: #7a5c33;
+  --silver: #9a9f92;             /* decorative only */
+  --gold: #b8860b;               /* decorative dot */
+  --platinum: #3d7e74;
+  --platinum-tint: #e3ece7;
+  --platinum-deep: #2a5f57;      /* TEXT form — 6.67:1 on --surface, 6.06:1 on its tint */
+  --amber: #7a5b0e;              /* 5.75:1 on --surface, 5.23:1 on its tint */
+  --amber-tint: #f0ead4;
+  /* Heat ramp: ivory → forest green. */
+  --heat-0: var(--ivory);
+  --heat-1: #c9d4b4;
+  --heat-2: #a3ba85;
+  --heat-3: #7c9a5c;
+  --heat-4: #4a6f3e;
+  --heat-edge: rgba(20, 24, 19, 0.05);
+  --on-accent: #ffffff;          /* 5.78:1 on --accent */
+  --btn-primary-hover: #141813;  /* = --ink */
+  --scrim: rgba(20, 24, 19, 0.44);
+  --shadow: rgba(20, 24, 19, 0.08);
+}
+
+/* NORDIC SLATE — cool slate/blue-grey surfaces, steel-blue accent. */
+[data-theme="nordic"] {
+  --bg: #f3f5f7;                 /* slate-50 — canvas, coolest of the light floors */
+  --floor: #e9edf1;              /* page floor */
+  --panel: #e9edf1;              /* = --floor */
+  --surface: #f3f5f7;            /* cards lift one step above the floor */
+  --ivory: #e0e5ea;              /* slate-300 — the ladder's next step down */
+  --ink: #13161a;                /* blue-black — 16.60:1 on --surface */
+  --ink-2: #4c5560;              /* 6.92:1 on --surface */
+  --ink-3: #68727e;              /* 4.47:1 on --surface — captions only */
+  --line: #d2d9e0;               /* border-hairline, blue-grey */
+  --accent: #35618f;             /* steel blue — fills, borders, rings; never small text */
+  --accent-deep: #25466b;        /* accent stepped toward ink — the TEXT form (8.87:1) */
+  --accent-tint: #d9e2ec;        /* accent flattened ~10% onto the surface */
+  --accent-track: #d2d9e0;       /* = --line */
+  --good: #2f6b4a;               /* 5.78:1 on --surface, 5.14:1 on its tint */
+  --good-tint: #e1eae3;
+  --bad: #a03434;                /* 6.33:1 on --surface, 5.55:1 on its tint */
+  --bad-tint: #f2e3e2;
+  --bronze: #7a5c33;
+  --silver: #98a0a9;             /* decorative only */
+  --gold: #b8860b;               /* decorative dot */
+  --platinum: #3d7e74;
+  --platinum-tint: #e2ecec;
+  --platinum-deep: #2a5f57;      /* TEXT form — 6.69:1 on --surface, 6.07:1 on its tint */
+  --amber: #7a5b0e;              /* 5.77:1 on --surface, 5.24:1 on its tint */
+  --amber-tint: #f0ead6;
+  /* Heat ramp: ivory → steel blue. */
+  --heat-0: var(--ivory);
+  --heat-1: #c3d3e2;
+  --heat-2: #8fb0cd;
+  --heat-3: #5b87b2;
+  --heat-4: #35618f;
+  --heat-edge: rgba(19, 22, 26, 0.05);
+  --on-accent: #ffffff;          /* 6.45:1 on --accent */
+  --btn-primary-hover: #13161a;  /* = --ink */
+  --scrim: rgba(19, 22, 26, 0.44);
+  --shadow: rgba(19, 22, 26, 0.08);
+}
+
+/* MIDNIGHT AND GOLD — dark theme (JS also sets data-dark). Deep navy
+   floor, gold accent; dark-text on-accent, same convention as aurora. */
+[data-theme="midnight"] {
+  --bg: #0d1420;                 /* navy-900 — inverted-control counterpart of light --bg */
+  --floor: #0d1420;              /* page floor; cards step UP via --surface */
+  --panel: #121a2a;              /* navy-800 */
+  --surface: #182135;            /* navy-700 — cards step UP from the floor */
+  --ivory: #1e2a42;              /* the ladder continued by its own step */
+  --ink: #eef1f7;                /* blue-tinted white — 16.31:1 on --floor, 14.19:1 on --surface */
+  --ink-2: #a3aec4;              /* 8.27:1 on --floor, 7.19:1 on --surface */
+  --ink-3: #7d89a0;              /* 4.56:1 on --surface */
+  --line: #2a3850;               /* border-on-dark */
+  --accent: #e0a83c;             /* gold — fills, borders, rings; never small text (7.52:1) */
+  --accent-deep: #f4d489;        /* on dark, "deeper" moves toward cream — the TEXT form (11.18:1) */
+  --accent-tint: #1e2a42;        /* de-golded to mirror warm-dark — same as --ivory */
+  --accent-track: #2a3850;       /* = --line */
+  --good: #6fbd80;               /* 7.09:1 on --surface, 7.02:1 on its tint */
+  --good-tint: #17251f;          /* status green at ~12% on the floor */
+  --bad: #e07a6a;                /* 5.48:1 on --surface, 5.65:1 on its tint */
+  --bad-tint: #2b1a1d;
+  --bronze: #d9a068;
+  --silver: #a3aec4;             /* = --ink-2, decorative only */
+  --gold: #e0a83c;               /* the accent itself, decorative */
+  --platinum: #5fc0ae;
+  --platinum-tint: #162427;
+  --platinum-deep: #5fc0ae;      /* TEXT form — 7.37:1 on --surface, 7.32:1 on its tint */
+  --amber: #e8a55a;              /* 7.62:1 on --surface, 7.32:1 on its tint */
+  --amber-tint: #2a2415;
+  /* Heat ramp: surface → gold, same construction as warm-dark. */
+  --heat-0: var(--surface);
+  --heat-1: #2d3a55;
+  --heat-2: #4d5734;
+  --heat-3: #8f7134;
+  --heat-4: #e0a83c;
+  --heat-edge: rgba(238, 241, 247, 0.06);  /* on-dark ink at alpha */
+  --on-accent: #141209;          /* dark text on the gold fill (8.78:1) — white would fail */
+  --btn-primary-hover: #e0e5ea;  /* controls step one pale step up */
+  --scrim: rgba(4, 7, 12, 0.6);          /* deep navy-black */
+  --shadow: rgba(4, 7, 12, 0.45);        /* higher alpha to read on #0d1420 */
+}
+
+/* AURORA NIGHT — dark theme (JS also sets data-dark). Deep teal floor,
+   bright cyan-green accent; dark-text on-accent like midnight. */
+[data-theme="aurora"] {
+  --bg: #0b1a1a;                 /* teal-900 — inverted-control counterpart of light --bg */
+  --floor: #0b1a1a;              /* page floor; cards step UP via --surface */
+  --panel: #0f2323;              /* teal-800 */
+  --surface: #13292a;            /* teal-700 — cards step UP from the floor */
+  --ivory: #183233;              /* the ladder continued by its own step */
+  --ink: #ecf4f4;                /* cyan-tinted white — 15.99:1 on --floor, 13.65:1 on --surface */
+  --ink-2: #9cb8b6;              /* 8.45:1 on --floor, 7.22:1 on --surface */
+  --ink-3: #7a9a97;              /* 5.00:1 on --surface */
+  --line: #254244;               /* border-on-dark */
+  --accent: #3fd6b5;             /* aurora cyan-green — fills only; never small text (8.34:1) */
+  --accent-deep: #8be9d4;        /* accent moved toward cream — the TEXT form (10.67:1) */
+  --accent-tint: #183233;        /* de-cyaned to mirror warm-dark — same as --ivory */
+  --accent-track: #254244;       /* = --line */
+  --good: #6fbd80;               /* 6.72:1 on --surface, 7.14:1 on its tint */
+  --good-tint: #14241b;
+  --bad: #e07a6a;                /* 5.20:1 on --surface, 5.67:1 on its tint */
+  --bad-tint: #2b1a18;
+  --bronze: #d9a068;
+  --silver: #9cb8b6;             /* = --ink-2, decorative only */
+  --gold: #e0c05a;               /* decorative dot */
+  --platinum: #5fc0ae;
+  --platinum-tint: #152726;
+  --platinum-deep: #5fc0ae;      /* TEXT form — 6.99:1 on --surface, 7.14:1 on its tint */
+  --amber: #e8a55a;              /* 7.23:1 on --surface, 7.33:1 on its tint */
+  --amber-tint: #292417;
+  /* Heat ramp: surface → aurora cyan-green. */
+  --heat-0: var(--surface);
+  --heat-1: #1f4a4a;
+  --heat-2: #247058;
+  --heat-3: #2e9c80;
+  --heat-4: #3fd6b5;
+  --heat-edge: rgba(236, 244, 244, 0.06);  /* on-dark ink at alpha */
+  --on-accent: #0b1a1a;          /* dark text on the bright fill (9.77:1) — white would fail */
+  --btn-primary-hover: #dfe9e8;  /* controls step one pale step up */
+  --scrim: rgba(4, 10, 10, 0.6);         /* deep teal-black */
+  --shadow: rgba(4, 10, 10, 0.45);       /* higher alpha to read on #0b1a1a */
+}
+
+/* ROSE DAWN — warm blush-pink surfaces, deep rose/cranberry accent. */
+[data-theme="rose"] {
+  --bg: #f8f4f3;                 /* rose-50 — canvas, blush-warm white */
+  --floor: #f2e9e8;              /* page floor */
+  --panel: #f2e9e8;              /* = --floor */
+  --surface: #f8f4f3;            /* cards lift one step above the floor */
+  --ivory: #ece0de;              /* rose-300 — the ladder's next step down */
+  --ink: #1c1415;                /* plum-black — 16.57:1 on --surface */
+  --ink-2: #5f5355;              /* 6.73:1 on --surface */
+  --ink-3: #7a6d6f;              /* 4.53:1 on --surface — captions only */
+  --line: #e3d5d3;               /* border-hairline, blushed */
+  --accent: #a03a5c;             /* cranberry — fills, borders, rings; never small text */
+  --accent-deep: #7a2a45;        /* accent stepped toward ink — the TEXT form (8.57:1) */
+  --accent-tint: #f0dade;        /* accent flattened ~10% onto the surface */
+  --accent-track: #e3d5d3;       /* = --line */
+  --good: #2f6b3e;               /* 5.84:1 on --surface, 5.23:1 on its tint */
+  --good-tint: #e6eae2;
+  --bad: #9c2c2c;                /* 6.84:1 on --surface, 5.96:1 on its tint */
+  --bad-tint: #f3e2df;
+  --bronze: #7a5c33;
+  --silver: #a39a9a;             /* decorative only */
+  --gold: #b8860b;               /* decorative dot */
+  --platinum: #3d7e74;
+  --platinum-tint: #e6ecea;
+  --platinum-deep: #2a5f57;      /* TEXT form — 6.69:1 on --surface, 6.11:1 on its tint */
+  --amber: #7a5b0e;              /* 5.77:1 on --surface, 5.34:1 on its tint */
+  --amber-tint: #f3ecd7;
+  /* Heat ramp: ivory → cranberry. */
+  --heat-0: var(--ivory);
+  --heat-1: #e6c3c9;
+  --heat-2: #d795a3;
+  --heat-3: #c15a77;
+  --heat-4: #a03a5c;
+  --heat-edge: rgba(28, 20, 21, 0.05);
+  --on-accent: #ffffff;          /* 6.45:1 on --accent */
+  --btn-primary-hover: #1c1415;  /* = --ink */
+  --scrim: rgba(28, 20, 21, 0.44);
+  --shadow: rgba(28, 20, 21, 0.08);
 }
 /* The three .tier-chip.tier-silver/-gold/-platinum dark overrides that
    used to live here are deleted: the chips now read var(--ink-2) /

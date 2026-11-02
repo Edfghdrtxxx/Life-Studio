@@ -958,7 +958,7 @@ PGRE.nav = (function () {
     concepts: 'Concept visualization',
     focus: 'Focus timer',
     studytime: 'Study time', achievements: 'Achievements', library: 'Library',
-    exam: 'Mock exam'
+    exam: 'Mock exam', settings: 'Settings'
   };
   var HREF = {
     plan: '#/plan', history: '#/history', analytics: '#/analytics',
@@ -967,7 +967,7 @@ PGRE.nav = (function () {
     concepts: '#/concepts',
     focus: '#/focus',
     studytime: '#/study-time', achievements: '#/achievements',
-    library: '#/library', exam: '#/exam'
+    library: '#/library', exam: '#/exam', settings: '#/settings'
   };
 
   var base = [{ label: 'Home', href: '#/' }];   // base trail for the active route
@@ -1102,6 +1102,7 @@ PGRE.route = function () {
   else if (parts[0] === 'study-time') { view = 'studytime'; }
   else if (parts[0] === 'achievements') { view = 'achievements'; }
   else if (parts[0] === 'library') { view = 'library'; }
+  else if (parts[0] === 'settings') { view = 'settings'; }
   else if (parts[0] === 'exam') { view = 'exam'; }
   else { view = 'dashboard'; }
 
@@ -1198,39 +1199,37 @@ PGRE.buildNav = function () {
     return PGRE.sidebarIcon ? PGRE.sidebarIcon(name) : '';
   };
   var items = {
-    today: [
-      { href: '#/', key: 'dashboard', label: 'Dashboard', icon: 'home' },
-      { href: '#/plan', key: 'plan', label: 'Study plan', icon: 'calendar' },
-      { href: '#/focus', key: 'focus', label: 'Focus timer', icon: 'timer' }
+    studio: [
+      { href: '#/', key: 'dashboard', label: 'Today', icon: 'home' },
+      { href: '#/formulas', key: 'formulas', label: 'Recall', icon: 'cards',
+        badge: 'nav-form-due' },
+      { href: '#/achievements', key: 'achievements', label: 'Achievements', icon: 'award' },
+      { href: '#/focus', key: 'focus', label: 'Focus timer', icon: 'timer' },
+      { href: '#/study-time', key: 'studytime', label: 'Study time', icon: 'hourglass' }
     ],
-    practice: [
+    physics: [
       { href: '#/practice/all', key: 'practice-all', label: 'Mixed practice', icon: 'play' },
       { href: '#/mistakes', key: 'mistakes', label: 'Mistake book', icon: 'mistake',
         badge: 'nav-mist-due' },
-      { href: '#/formulas', key: 'formulas', label: 'Recall', icon: 'cards',
-        badge: 'nav-form-due' },
       { href: '#/exam', key: 'exam', label: 'Mock exam', icon: 'stopwatch' },
-      { href: '#/build', key: 'build', label: 'Custom quiz', icon: 'sliders' }
-    ],
-    review: [
+      { href: '#/build', key: 'build', label: 'Custom quiz', icon: 'sliders' },
       { href: '#/history', key: 'history', label: 'History', icon: 'history' },
       { href: '#/analytics', key: 'analytics', label: 'Analytics', icon: 'chart' },
-      { href: '#/study-time', key: 'studytime', label: 'Study time', icon: 'hourglass' },
-      { href: '#/achievements', key: 'achievements', label: 'Achievements', icon: 'award' }
+      { href: '#/concepts', key: 'concepts', label: 'Concept visualization', icon: 'atom' }
     ],
-    reference: [
+    more: [
+      { href: '#/plan', key: 'plan', label: 'Study plan', icon: 'calendar' },
       { href: '#/search', key: 'search', label: 'Search', icon: 'search' },
       { href: '#/notes', key: 'notes', label: 'Notes &amp; bookmarks', icon: 'note' },
-      { href: '#/concepts', key: 'concepts', label: 'Concept visualization', icon: 'atom' },
-      { href: '#/library', key: 'library', label: 'Library', icon: 'folder' }
+      { href: '#/library', key: 'library', label: 'Library', icon: 'folder' },
+      { href: '#/settings', key: 'settings', label: 'Settings', icon: 'gear' }
     ]
   };
   var groupLabels = {
-    today: 'Today',
-    practice: 'Practice',
-    review: 'Review',
-    reference: 'Reference',
-    topics: 'Knowledge portals'
+    studio: 'Studio',
+    physics: 'Physics',
+    more: 'More',
+    topics: 'Physics'   // sidebar search groups portal hits under the subject
   };
   var renderItem = function (item) {
     var badge = item.badge
@@ -1242,14 +1241,17 @@ PGRE.buildNav = function () {
   };
   // Group headers are quiet uppercase labels with a chevron; the icon
   // column belongs to the destinations, so no glyph repeats in a header.
-  var renderGroup = function (id, children) {
+  // `more` starts collapsed — the countdown-era pages stay reachable but out
+  // of the way (Life Studio: the study plan lives behind the menu).
+  var renderGroup = function (id, children, collapsed) {
     return '<section class="nav-tree-group" data-nav-group="' + id + '">' +
-      '<button class="nav-tree-toggle" type="button" aria-expanded="true" ' +
+      '<button class="nav-tree-toggle" type="button" aria-expanded="' + (collapsed ? 'false' : 'true') + '" ' +
         'aria-controls="nav-group-' + id + '">' +
         '<span>' + groupLabels[id] + '</span>' +
         '<span class="nav-tree-chevron" aria-hidden="true"></span>' +
       '</button>' +
-      '<div class="nav-tree-items" id="nav-group-' + id + '">' + children + '</div>' +
+      '<div class="nav-tree-items" id="nav-group-' + id + '"' + (collapsed ? ' hidden' : '') + '>' +
+      children + '</div>' +
     '</section>';
   };
   var topicItems = '';
@@ -1260,11 +1262,9 @@ PGRE.buildNav = function () {
       '%</span></a>';
   });
   var html = '<div class="nav-tree">' +
-    renderGroup('today', items.today.map(renderItem).join('')) +
-    renderGroup('practice', items.practice.map(renderItem).join('')) +
-    renderGroup('review', items.review.map(renderItem).join('')) +
-    renderGroup('reference', items.reference.map(renderItem).join('')) +
-    renderGroup('topics', topicItems) +
+    renderGroup('studio', items.studio.map(renderItem).join('')) +
+    renderGroup('physics', items.physics.map(renderItem).join('') + topicItems) +
+    renderGroup('more', items.more.map(renderItem).join(''), true) +
     '</div>';
   el.innerHTML = html;
   el.querySelectorAll('.nav-tree-toggle').forEach(function (toggle) {
@@ -1368,22 +1368,33 @@ PGRE.toggleSidebar = function () {
 };
 
 
-/* ——— Theme: 'light' (default) or 'dark', a data-theme layer on <html> ——— */
+/* ——— Themes (Life Studio): named themes on <html data-theme>.
+   js/data-themes.js is the registry: each theme carries an `attr` value
+   ('' = the :root palette; 'dark' = the legacy warm-dark selector the CSS
+   and tests already key on) and a `dark` flag that sets [data-dark] so
+   dark-only CSS applies to every dark theme. Legacy saved values are
+   normalized by store.migrate() and again here. ——— */
 PGRE.applyTheme = function (t) {
-  t = t || 'light';
-  document.documentElement.dataset.theme = t;
+  var theme = PGRE.themeEntry ? PGRE.themeEntry(t)
+                              : { attr: t || '', dark: t === 'dark', name: t || 'default' };
+  if (theme.attr) document.documentElement.dataset.theme = theme.attr;
+  else delete document.documentElement.dataset.theme;
+  if (theme.dark) document.documentElement.dataset.dark = '1';
+  else delete document.documentElement.dataset.dark;
   var btn = document.getElementById('theme-toggle');
   if (btn) {
-    btn.textContent = t === 'dark' ? 'Light mode' : 'Dark mode';
-    btn.setAttribute('aria-pressed', t === 'dark' ? 'true' : 'false');
+    btn.textContent = 'Theme';
+    btn.setAttribute('aria-pressed', theme.dark ? 'true' : 'false');
+    btn.setAttribute('title', 'Theme: ' + theme.name + ' — pick in Settings');
   }
 };
 
-/* Persist + apply — the sidebar toggle and any settings UI call this. */
+/* Persist + apply — the sidebar toggle and the Settings picker call this. */
 PGRE.setTheme = function (t) {
-  PGRE.store.state.settings.theme = t;
+  var id = PGRE.normalizeTheme ? PGRE.normalizeTheme(t) : t;
+  PGRE.store.state.settings.theme = id;
   PGRE.store.save();
-  PGRE.applyTheme(t);
+  PGRE.applyTheme(id);
 };
 
 /* The store is origin-scoped: file://, localhost, and 127.0.0.1 are separate
@@ -1461,9 +1472,14 @@ PGRE.boot = function () {
   }
   PGRE.studyTime.start();       // passive active-minutes heartbeat
   if (PGRE.timer) PGRE.timer.boot();   // F3 focus timer: resume/credit + wire the top-bar widget
+  // Sidebar theme button: quick light/dark flip (warm-dark <-> the default
+  // Paper and ink); the full picker lives in Settings (Life Studio).
   var toggle = document.getElementById('theme-toggle');
   if (toggle) toggle.addEventListener('click', function () {
-    PGRE.setTheme(PGRE.store.state.settings.theme === 'dark' ? 'light' : 'dark');
+    var cur = PGRE.store.state.settings.theme;
+    var dark = PGRE.themeIsDark ? PGRE.themeIsDark(cur)
+                                : (cur === 'dark' || cur === 'warm-dark');
+    PGRE.setTheme(dark ? 'paper' : 'warm-dark');
   });
   // Finder-style history arrows — hash routes ride the browser session history,
   // so back/forward are always meaningful; a no-op click is harmless.
