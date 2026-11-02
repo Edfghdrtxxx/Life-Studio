@@ -236,6 +236,53 @@ PGRE.FORMULAS = [
     note: "Supplemental. Kahn §2.1.7, p.40 and §2.8, Electrostatics solution 1, p.59."
   },
   {
+    id: "supp-coulomb-constant",
+    eq: "supp",
+    topic: "em",
+    tag: "Electrostatics",
+    name: "Value of Coulomb's constant (supplemental)",
+    front: "The ETS table of information gives the vacuum permittivity $\\epsilon_0 = 8.85\\times10^{-12}\\ \\mathrm{C^2/(N\\,m^2)}$ but not Coulomb's constant. What is $k = 1/(4\\pi\\epsilon_0)$, and what is the energy $kq_1q_2/r$ of two $1\\ \\mu\\mathrm{C}$ charges $1\\ \\mathrm{m}$ apart?",
+    braced: "\\underbrace{k}_{\\text{Coulomb's constant}} = \\frac{1}{4\\pi\\,\\underbrace{\\epsilon_0}_{\\text{vacuum permittivity}}} \\approx 9.0\\times10^{9}\\ \\mathrm{N\\,m^2/C^2}",
+    back: "$$k = \\frac{1}{4\\pi\\epsilon_0} \\approx 9.0\\times10^{9}\\ \\mathrm{N\\,m^2/C^2}$$<p class=\"card-key\"><strong>Memorize $k$: the table gives only $\\epsilon_0$.</strong></p><ul class=\"recall-list\"><li><strong>Microcoulomb scale:</strong> two $1\\ \\mu\\mathrm{C}$ charges $1\\ \\mathrm{m}$ apart have $U = (9\\times10^{9})(10^{-12}) = 9\\times10^{-3}\\ \\mathrm{J} = 9\\ \\mathrm{mJ}$.</li><li><strong>From the table:</strong> $4\\pi \\times 8.85\\times10^{-12} \\approx 1.11\\times10^{-10}$, and its inverse is about $9\\times10^{9}$.</li><li><strong>Cross-check:</strong> $k = c^2\\,\\mu_0/4\\pi = (3\\times10^{8})^2 \\times 10^{-7} = 9\\times10^{9}$.</li><li><strong>Atomic scale:</strong> $e^2/(4\\pi\\epsilon_0) \\approx 1.44\\ \\mathrm{eV\\,nm}$ gives energies in $\\mathrm{eV}$; for charges in $\\mathrm{C}$ and energies in $\\mathrm{J}$, use $k$.</li></ul>",
+    note: "Supplemental. ETS GRE Physics Test Practice Book (2024), Table of Information, p.8, lists $\\epsilon_0$ and $\\mu_0$ but not $k$."
+  },
+  {
+    id: "supp-curl-components",
+    eq: "supp",
+    topic: "em",
+    tag: "Vector calculus",
+    name: "Components of the curl (supplemental)",
+    front: "Write the $x$, $y$ and $z$ components of $\\nabla \\times \\mathbf{A}$ in Cartesian coordinates. Which component carries the sign trap, and what is the fastest way to test a proposed $\\mathbf{A}$ against a given $\\mathbf{B}$?",
+    back: "$$\\begin{gathered}(\\nabla \\times \\mathbf{A})_x = \\partial_y A_z - \\partial_z A_y \\\\ (\\nabla \\times \\mathbf{A})_y = \\partial_z A_x - \\partial_x A_z \\\\ (\\nabla \\times \\mathbf{A})_z = \\partial_x A_y - \\partial_y A_x\\end{gathered}$$<p class=\"card-key\"><strong>Component $i$ is $\\partial_j A_k - \\partial_k A_j$ with $(i, j, k)$ in cyclic order $x \\to y \\to z \\to x$.</strong></p><ul class=\"recall-list\"><li><strong>Sign trap:</strong> the $y$ component is $\\partial_z A_x - \\partial_x A_z$. The determinant expansion puts a minus sign on $\\hat{\\mathbf{y}}$; dropping it reverses the sign.</li><li><strong>Fastest test:</strong> start from a constant component of $\\mathbf{B}$, keep only the options that give it with the right sign, then check one more component.</li><li><strong>Not unique:</strong> $\\mathbf{A}$ and $\\mathbf{A} + \\nabla f$ give the same $\\mathbf{B}$, so a question asks which option could be the potential.</li><li><strong>Consistency:</strong> any field written as a curl has $\\nabla \\cdot \\mathbf{B} = 0$.</li></ul>",
+    note: "Supplemental. Kahn (2.26), §2.2.1, p.45: $\\nabla \\cdot \\mathbf{B} = 0$ allows $\\mathbf{B} = \\nabla \\times \\mathbf{A}$. The component form is standard Cartesian vector calculus."
+  },
+  {
+    id: "supp-dispersion-relations",
+    kind: "list",
+    eq: "supp",
+    topic: "sp",
+    tag: "Dispersion",
+    name: "Dispersion relations: the method (supplemental list)",
+    front: "How do you turn a particle's energy-momentum relation into $\\omega(k)$, how do the phase and group velocities follow from $\\omega(k)$, and which dispersion relation must you memorize? (3)",
+    back: "<ul class=\"recall-list\"><li><strong>From $E(p)$:</strong> substitute $E = \\hbar\\omega$ and $p = \\hbar k$.<br>Free particle $\\omega \\propto k^2$; photon $\\omega \\propto k$; massive relativistic $(\\hbar\\omega)^2 = (\\hbar kc)^2 + (mc^2)^2$, quadratic at small $k$ and linear at large $k$.</li><li><strong>Two velocities:</strong> $v_p = \\omega/k$ and $v_g = d\\omega/dk$. For $\\omega \\propto k^n$, $v_g = n\\,v_p$.<br>Free particle $v_g = 2v_p$; deep water ($\\omega \\propto \\sqrt{k}$) $v_g = v_p/2$; massive relativistic $v_g$ runs from $0$ at $k \\to 0$ to $c$ at $k \\to \\infty$.</li><li><strong>Graphene (the one to memorize):</strong> conduction electrons are massless Dirac fermions, so $\\omega \\propto |k|$, linear like light.</li></ul>",
+    note: "Supplemental. ETS GR8677 question 59 and GR9277 question 79 give the relation or the curve and test the two velocities; Kahn Sample Exam 1 question 97 gives the deep-water relation. Only Kahn Sample Exam 1 question 26 (graphene) expects the relation from memory."
+  },
+  {
+    id: "supp-p-t-c-transformations",
+    eq: "supp",
+    topic: "sp",
+    tag: "Symmetries",
+    name: "Parity, time reversal and charge conjugation of vectors (supplemental)",
+    front: "Under parity $P$, time reversal $T$ and charge conjugation $C$, which of $\\mathbf{r}$, $\\mathbf{p}$, $\\mathbf{S}$, $\\mathbf{E}$, $\\mathbf{B}$, $\\mathbf{d}$ and $\\boldsymbol{\\mu}$ flip sign? Use them to decide which symmetries a term $\\mathbf{S}\\cdot\\mathbf{p}$ in the Hamiltonian violates.",
+    back: "<p class=\"card-key\"><strong>A term violates a symmetry when the product of its factors' signs is $-1$.</strong></p>" +
+      "<ul class=\"recall-list\"><li><strong>Mirror, $P$ ($\\mathbf{r} \\to -\\mathbf{r}$):</strong> arrows that point to places flip. Spin arrows stay, because in $\\mathbf{L} = \\mathbf{r}\\times\\mathbf{p}$ both factors flip.</li>" +
+      "<li><strong>Rewind, $T$ ($t \\to -t$):</strong> anything moving flips, including $\\mathbf{B}$, which currents make. Snapshots stay: $\\mathbf{r}$, and $\\mathbf{E}$ and $\\mathbf{d}$ from charges at rest.</li>" +
+      "<li><strong>Antimatter, $C$ ($q \\to -q$):</strong> anything made of charge flips. Pure mechanics, $\\mathbf{r}$, $\\mathbf{p}$ and $\\mathbf{S}$, stays.</li>" +
+      "<li><strong>Worked, $\\mathbf{S}\\cdot\\mathbf{p}$:</strong> $P$: $(+)(-) = -$, violated. $T$: $(-)(-) = +$. $C$: $(+)(+) = +$. Helicity violates $P$ only, as the weak interaction does.</li>" +
+      "<li><strong>Dipoles at rest point along $\\mathbf{S}$:</strong> $\\mathbf{d} \\propto \\mathbf{S}$ makes $\\mathbf{S}\\cdot\\mathbf{E}$ odd under $P$ and $T$, so a neutron electric dipole moment violates both. $\\boldsymbol{\\mu} \\propto \\mathbf{S}$ makes $\\mathbf{S}\\cdot\\mathbf{B}$ even, so a magnetic moment is allowed. $C$ turns a neutron into an antineutron, so the neutron alone does not test $C$.</li></ul>",
+    note: "Supplemental. Kahn Sample Exam 1, question 86 (neutron electric dipole moment)."
+  },
+  {
     id: "supp-rc-rl-transients",
     kind: "list",
     eq: "supp",
@@ -406,10 +453,10 @@ PGRE.FORMULAS = [
     topic: "at",
     tag: "Hydrogen atom",
     name: "Hydrogenic scaling with Z and reduced mass (supplemental)",
-    front: "A hydrogen-like system has nuclear charge $Ze$ and reduced mass $\\mu$. How do $E_n$, the orbit radii $r_n$ and the emitted wavelengths scale with $\\mu$ and $Z$? What is $E_1$ for $\\mathrm{He}^+$?",
+    front: "A hydrogen-like system has nuclear charge $Ze$ and reduced mass $\\mu$. How do $E_n$, the orbit radii $r_n$ and the emitted wavelengths scale with $\\mu$ and $Z$? What is $E_1$ for $\\mathrm{He}^+$, and how does it give the first ionization energy of neutral He?",
     braced: "\\underbrace{E_n}_{\\substack{\\text{level}\\\\\\text{energy}}} \\propto \\frac{\\overbrace{\\mu}^{\\substack{\\text{reduced}\\\\\\text{mass}}}\\,\\overbrace{Z^2}^{\\substack{\\text{atomic}\\\\\\text{number}^2}}}{\\underbrace{n^2}_{\\substack{\\text{level}\\\\\\text{number}^2}}}, \\qquad \\underbrace{r_n \\propto \\frac{n^2}{\\mu Z}}_{\\text{orbit radius}}, \\qquad \\underbrace{\\lambda \\propto \\frac{1}{\\mu Z^2}}_{\\text{emitted wavelength}}",
-    back: "$$E_n \\propto \\frac{\\mu Z^2}{n^2}, \\qquad r_n \\propto \\frac{n^2}{\\mu Z}, \\qquad \\lambda \\propto \\frac{1}{\\mu Z^2}$$<p class=\"card-key\"><strong>A nucleus $Ze$ gives $(Ze^2)^2$, a factor $Z^2$, not $Z^4$.</strong></p><ul class=\"recall-list\"><li><strong>$\\mathrm{He}^+$:</strong> $E_1 = -4(13.6\\ \\text{eV}) = -54.4\\ \\text{eV}$ and $r_1 = a_0/2$.</li><li><strong>Trap:</strong> $e^4$ is $(e^2)^2$, where $e^2$ is the electron charge times the nuclear charge.</li></ul>",
-    note: "Supplemental — Kahn §5.4.3, p.107, warns about the $Z^4$ trap."
+    back: "$$E_n \\propto \\frac{\\mu Z^2}{n^2}, \\qquad r_n \\propto \\frac{n^2}{\\mu Z}, \\qquad \\lambda \\propto \\frac{1}{\\mu Z^2}$$<p class=\"card-key\"><strong>A nucleus $Ze$ gives $(Ze^2)^2$, a factor $Z^2$, not $Z^4$.</strong></p><ul class=\"recall-list\"><li><strong>$\\mathrm{He}^+$:</strong> $E_1 = -4(13.6\\ \\text{eV}) = -54.4\\ \\text{eV}$ and $r_1 = a_0/2$.</li><li><strong>Trap:</strong> $e^4$ is $(e^2)^2$, where $e^2$ is the electron charge times the nuclear charge.</li><li><strong>Successive ionization:</strong> each electron removed costs less than the next one, $E_{\\text{ion},1} < E_{\\text{ion},2} < \\dots$, because fewer electrons are left to screen the nucleus.<br>He: removing both costs $79.0\\ \\text{eV}$, and the second is the $\\mathrm{He}^+$ value $54.4\\ \\text{eV}$, so the first is $79.0 - 54.4 = 24.6\\ \\text{eV}$, not $79.0/2$.</li></ul>",
+    note: "Supplemental — Kahn §5.4.3, p.107, warns about the $Z^4$ trap. Successive ionization: ETS GR0177 question 18."
   },
   {
     id: "supp-xray-edges",
@@ -764,6 +811,16 @@ PGRE.FORMULAS = [
     note: "Supplemental — Kahn §5.5.4, p.111."
   },
   {
+    id: "supp-closed-shell-singlet",
+    eq: "supp",
+    topic: "at",
+    tag: "Atomic terms",
+    name: "Closed-shell ground state is a spin singlet (supplemental)",
+    front: "What are the total spin $S$ and the multiplicity $2S+1$ of the ground state of a closed-shell atom such as He ($1s^2$), Ne or Ar? Why can the He ground state not be a triplet, and what does one extra electron outside a closed shell give?",
+    back: "$$S = 0,\\qquad 2S+1 = 1\\ \\ (\\text{singlet})$$<p class=\"card-key\"><strong>In a closed shell every electron is paired, so the spins cancel.</strong></p><ul class=\"recall-list\"><li><strong>He $1s^2$:</strong> both electrons share the $1s$ orbital, so the spatial part is symmetric and the spin part must be antisymmetric: the singlet $\\frac{1}{\\sqrt{2}}\\left(|{\\uparrow\\downarrow}\\rangle - |{\\downarrow\\uparrow}\\rangle\\right)$.</li><li><strong>No triplet:</strong> a triplet contains $|{\\uparrow\\uparrow}\\rangle$, but two $1s$ electrons share $n$, $l$ and $m_l$, so the Pauli principle forces different $m_s$.</li><li><strong>One electron outside a closed shell</strong> (Li $1s^2 2s$, Na): $S = \\tfrac{1}{2}$, a doublet.</li><li><strong>Excited He $1s2s$:</strong> the triplet (orthohelium) lies below the singlet (parahelium). Its antisymmetric spatial part vanishes at $\\mathbf{r}_1 = \\mathbf{r}_2$, which keeps the electrons apart and lowers their Coulomb repulsion.</li></ul>",
+    note: "Supplemental — ETS GR9277 question 59 (ground state); ETS GR1777 question 61 (ortho below para)."
+  },
+  {
     id: "supp-spin-half-properties",
     eq: "supp",
     topic: "qm",
@@ -894,6 +951,17 @@ PGRE.FORMULAS = [
     braced: "\\begin{gathered}\\underbrace{\\mathbf{E}}_{\\substack{\\text{built-in}\\\\\\text{electric field}}}:\\ \\underbrace{n \\to p}_{\\substack{\\text{from the n side}\\\\\\text{to the p side}}},\\ \\text{perpendicular to the interface,} \\\\ \\underbrace{\\text{only in the depletion region}}_{\\substack{\\text{the thin layer at the interface}\\\\\\text{with no free charge carriers}}}\\end{gathered}",
     back: "$$\\begin{gathered}\\mathbf{E}:\\ n \\to p,\\ \\text{perpendicular to the interface,} \\\\ \\text{only in the depletion region}\\end{gathered}$$<p class=\"card-key\"><strong>The two charged layers act like a capacitor, so $\\mathbf{E}$ points from $n$ to $p$.</strong></p><ul class=\"recall-list\"><li><strong>Diffusion:</strong> electrons diffuse from $n$ to $p$ (holes from $p$ to $n$).</li><li><strong>Fixed ions</strong> stay behind: $+$ donors on the $n$ side, $-$ acceptors on the $p$ side.</li><li><strong>Equilibrium:</strong> $\\mathbf{E}$ pushes electrons back until drift balances diffusion.</li><li><strong>Magnetic field:</strong> none.</li></ul>",
     note: "Supplemental — Kahn Sample Exam 1 #76.<img class=\"q-fig\" src=\"content/book-assets/pn-junction-field.svg\" alt=\"p-n junction: electrons diffuse from n to p, leaving + donors on the n side and − acceptors on the p side; the built-in field points from n to p\">"
+  },
+  {
+    id: "supp-resistivity-temperature",
+    eq: "supp",
+    topic: "sp",
+    tag: "Semiconductors",
+    name: "Resistivity versus temperature: semiconductor and metal (supplemental)",
+    front: "How does the resistivity of an undoped (intrinsic) semiconductor change as the temperature rises, and how does a metal differ? Give the reason for each.",
+    braced: "\\underbrace{\\rho_{\\text{semi}}}_{\\substack{\\text{intrinsic semiconductor}\\\\\\text{resistivity}}} \\propto e^{+\\overbrace{E_g}^{\\text{band gap}}/2k_BT}\\ \\text{(falls as } T \\text{ rises)}, \\qquad \\underbrace{\\rho_{\\text{metal}}}_{\\text{metal resistivity}} \\propto T\\ \\text{(rises)}",
+    back: "$$\\rho_{\\text{semi}} \\propto e^{+E_g/2k_BT}\\ (\\text{falls as } T \\text{ rises}), \\qquad \\rho_{\\text{metal}} \\propto T\\ (\\text{rises})$$<p class=\"card-key\"><strong>Semiconductor: heat makes carriers. Metal: heat makes scattering.</strong></p><ul class=\"recall-list\"><li><strong>Semiconductor:</strong> carriers must be thermally excited across the band gap, $n \\propto e^{-E_g/2k_BT}$, so a higher $T$ gives more carriers and a lower $\\rho$ (negative temperature coefficient).<br>Graph: starts high, falls steeply, levels off.</li><li><strong>Metal:</strong> the number of carriers is fixed; lattice vibrations (phonons) scatter the electrons more at higher $T$, so $\\rho$ rises roughly linearly.</li></ul>",
+    note: "Supplemental — ETS GR0177 question 53."
   },
   {
     id: "supp-neutrino-oscillation",
@@ -1058,6 +1126,39 @@ PGRE.FORMULAS = [
     front: "You integrate $dE$ or $dV$ over a charged body. Where do you put the origin (a) for a straight rod with the field point on the rod's extension line, and (b) for a ring, cylinder or sphere, or when you need $E(\\mathbf{r})$ at an arbitrary point $\\mathbf{r}$?",
     braced: "\\underbrace{E}_{\\substack{\\text{field at}\\\\\\text{the point}}} = \\underbrace{\\int_{d}^{d+L}}_{\\substack{\\text{over}\\\\\\text{the rod}}} \\frac{\\overbrace{k\\lambda\\,dx}^{\\substack{\\text{Coulomb}\\\\\\text{constant}\\\\\\text{times } dq}}}{\\underbrace{x^2}_{\\substack{\\text{distance}\\\\\\text{squared}}}} = \\overbrace{k\\lambda}^{\\substack{k \\text{ times}\\\\\\text{line density}}}\\left(\\frac{1}{\\underbrace{d}_{\\substack{\\text{near}\\\\\\text{distance}}}} - \\frac{1}{\\underbrace{d+L}_{\\substack{\\text{far}\\\\\\text{distance}}}}\\right)",
     back: "$$E = \\int_{d}^{d+L} \\frac{k\\lambda\\,dx}{x^2} = k\\lambda\\left(\\frac{1}{d} - \\frac{1}{d+L}\\right)$$<p class=\"card-key\"><strong>Rod's extension line: origin at the field point. Otherwise: center of symmetry.</strong></p><ul class=\"recall-list\"><li><strong>(a) Rod, extension line:</strong> the distance to each element $dq = \\lambda\\,dx$ is just $x$, and the limits are the near and far distances.</li><li><strong>(b) Ring, cylinder or sphere:</strong> the field point $\\mathbf{r}$ stays a variable and symmetry cancels the transverse components.</li><li><strong>Ring's axis:</strong> $E_z = \\dfrac{kQz}{(z^2+R^2)^{3/2}}$.</li></ul>",
+    note: "Supplemental."
+  },
+  {
+    id: "supp-radial-wavefunction-admissible",
+    eq: "supp",
+    topic: "qm",
+    tag: "Hydrogen atom",
+    name: "Which functions can be a bound radial wavefunction (supplemental)",
+    front: "Which of $Ae^{-br}$, $A\\sin(br)$ and $A/r$ (with $b \\gt 0$) can be the radial wavefunction $R(r)$ of an electron bound in an atom, and what test decides it?",
+    braced: "\\underbrace{\\int_0^\\infty}_{\\substack{\\text{all}\\\\\\text{radii}}} \\overbrace{|R(r)|^2}^{\\substack{\\text{squared radial}\\\\\\text{wavefunction}}}\\,\\underbrace{r^2\\,dr}_{\\substack{\\text{shell volume}\\\\\\text{factor}}} \\lt \\infty",
+    back: "$$\\int_0^\\infty |R(r)|^2\\,r^2\\,dr \\lt \\infty, \\quad R(0)\\ \\text{finite}$$<p class=\"card-key\"><strong>Only $Ae^{-br}$. A bound state needs a decaying tail, $R \\sim e^{-\\kappa r}$.</strong></p><ul class=\"recall-list\"><li><strong>$Ae^{-br}$:</strong> $r^2 e^{-2br}$ integrates to a finite value. This is the hydrogen ground state, $R_{10} \\propto e^{-r/a_0}$.</li><li><strong>$A\\sin(br)$:</strong> $r^2\\sin^2(br)$ keeps growing, so the integral diverges.</li><li><strong>$A/r$:</strong> $r^2 \\cdot A^2/r^2 = A^2$ is constant, so the integral grows like $r$ and diverges at large $r$. $R$ is also infinite at $r = 0$.</li><li><strong>Bound state, $E \\lt 0$:</strong> the electron stays in a finite region. Far from the nucleus $V \\to 0$, so $u = rR$ obeys $u'' = \\kappa^2 u$ with $\\kappa = \\sqrt{2m|E|}/\\hbar$: the tail is $e^{-\\kappa r}$ (a polynomial times it is also allowed), and $R$ can be normalized.</li><li><strong>Free state, $E \\gt 0$:</strong> the electron moves through all space. Then $u'' = -k^2 u$ with $k = \\sqrt{2mE}/\\hbar$, so $R$ keeps oscillating as $\\sin(kr)$ or $e^{ikr}$ and cannot be normalized in the ordinary way.</li></ul>",
+    note: "Supplemental — GR0177 Q30 (answer: I only)."
+  },
+  {
+    id: "supp-arc-field-centre",
+    eq: "supp",
+    topic: "em",
+    tag: "Biot-Savart",
+    name: "Magnetic field at the centre of a circular arc (supplemental)",
+    front: "A wire bent into a circular arc of radius $R$ subtends an angle $\\theta$ at the centre and carries current $I$. What is $B$ at the centre?",
+    braced: "\\underbrace{B}_{\\substack{\\text{field at}\\\\\\text{the centre}}} = \\frac{\\overbrace{\\mu_0}^{\\substack{\\text{vacuum}\\\\\\text{permeability}}}\\,\\overbrace{I}^{\\text{current}}\\,\\overbrace{\\theta}^{\\substack{\\text{arc angle}\\\\\\text{(radians)}}}}{4\\pi\\underbrace{R}_{\\text{arc radius}}}",
+    back: "$$B = \\frac{\\mu_0 I \\theta}{4\\pi R}$$",
+    note: "Supplemental. Biot–Savart, Kahn (2.29), §2.2.2, p.46."
+  },
+  {
+    id: "supp-dielectric-d-normal",
+    eq: "supp",
+    topic: "em",
+    tag: "Boundary conditions",
+    name: "Normal D across a dielectric boundary (supplemental)",
+    front: "A field $E_0$ in vacuum meets the flat face of a dielectric of dielectric constant $K$ at normal incidence, with no free surface charge. What is the boundary condition, and what is the field $E_{\\text{in}}$ inside?",
+    braced: "\\underbrace{\\epsilon_0 E_0}_{\\substack{D \\text{ outside}}} = \\underbrace{K\\epsilon_0 E_{\\text{in}}}_{\\substack{D \\text{ inside}}}",
+    back: "$$D_{\\text{out}} = D_{\\text{in}}: \\quad \\epsilon_0 E_0 = K\\epsilon_0 E_{\\text{in}} \\;\\Rightarrow\\; E_{\\text{in}} = \\frac{E_0}{K}$$",
     note: "Supplemental."
   }
 ];

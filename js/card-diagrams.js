@@ -950,3 +950,205 @@ PGRE.cardDiagrams['supp-radiation-field'] = function (host) {
   }
   draw();
 };
+
+/* ——— Parity, time reversal and charge conjugation lab ———
+   Not 3D: an HTML lab in place of the card's .recall-list. Buttons apply
+   P, T or C to seven quantities (coral arrows flip, teal arrows stay), a
+   term tester multiplies the factors' signs, and a predict-first quiz
+   draws one quantity and one transformation at a time. */
+(function () {
+  var ROWS = [
+    { k: 'r', sym: '\\mathbf{r}', name: 'Position',
+      P: [1, 'it points to a place'], T: [0, 'a snapshot: no time in it'], C: [0, 'no charge in it'] },
+    { k: 'p', sym: '\\mathbf{p} = m\\mathbf{v}', name: 'Momentum',
+      P: [1, '$\\mathbf{v} = d\\mathbf{r}/dt$ and $\\mathbf{r}$ flips'], T: [1, 'the motion runs backward'], C: [0, 'no charge in it'] },
+    { k: 'S', sym: '\\mathbf{S},\\ \\mathbf{L} = \\mathbf{r}\\times\\mathbf{p}', name: 'Spin and orbital angular momentum', axial: true,
+      P: [0, '$\\mathbf{r}$ and $\\mathbf{p}$ both flip, so the rotation keeps its sense'], T: [1, 'the rotation runs backward'], C: [0, 'no charge in it'] },
+    { k: 'E', sym: '\\mathbf{E}', name: 'Electric field',
+      P: [1, '$\\mathbf{F} = q\\mathbf{E}$ and $\\mathbf{F}$ flips'], T: [0, 'charges at rest make it: a snapshot'], C: [1, 'its source charges flip'] },
+    { k: 'B', sym: '\\mathbf{B}', name: 'Magnetic field', axial: true,
+      P: [0, 'in $\\mathbf{F} = q\\mathbf{v}\\times\\mathbf{B}$, $\\mathbf{F}$ and $\\mathbf{v}$ both flip'], T: [1, 'currents make it, and they reverse'], C: [1, 'its currents carry flipped charges'] },
+    { k: 'd', sym: '\\mathbf{d} = q\\mathbf{r}', name: 'Electric dipole moment',
+      P: [1, '$\\mathbf{r}$ flips'], T: [0, 'charge positions: a snapshot'], C: [1, '$q$ flips'] },
+    { k: 'mu', sym: '\\boldsymbol{\\mu} \\propto q\\mathbf{L}', name: 'Magnetic moment', axial: true,
+      P: [0, 'a current loop keeps its sense, like a spin'], T: [1, 'the loop current reverses'], C: [1, '$q$ flips'] }
+  ];
+  var TERMS = [
+    { id: 'SE', tex: '\\mathbf{S}\\cdot\\mathbf{E}', label: 'electric dipole moment, $\\mathbf{d} \\propto \\mathbf{S}$', a: 'S', b: 'E', cA: 'd', neutral: true },
+    { id: 'SB', tex: '\\mathbf{S}\\cdot\\mathbf{B}', label: 'magnetic moment, $\\boldsymbol{\\mu} \\propto \\mathbf{S}$', a: 'S', b: 'B', cA: 'mu', neutral: true },
+    { id: 'Sp', tex: '\\mathbf{S}\\cdot\\mathbf{p}', label: 'helicity, as in the weak interaction', a: 'S', b: 'p' },
+    { id: 'EB', tex: '\\mathbf{E}\\cdot\\mathbf{B}', label: 'the product of the two fields', a: 'E', b: 'B' }
+  ];
+  var NAMES = { P: 'parity $P$ (mirror)', T: 'time reversal $T$ (rewind)', C: 'charge conjugation $C$ (antimatter)' };
+  var SLOGAN = {
+    P: 'Mirror, $\\mathbf{r} \\to -\\mathbf{r}$: arrows that point to places flip; arrows that spin stay.',
+    T: 'Rewind, $t \\to -t$: anything moving flips; snapshots stay.',
+    C: 'Antimatter, $q \\to -q$: anything made of charge flips; pure mechanics stays.'
+  };
+
+  function row(k) {
+    for (var i = 0; i < ROWS.length; i++) if (ROWS[i].k === k) return ROWS[i];
+    return null;
+  }
+  function term(id) {
+    for (var i = 0; i < TERMS.length; i++) if (TERMS[i].id === id) return TERMS[i];
+    return null;
+  }
+  /* true when quantity k changes sign under t ('P' | 'T' | 'C'). */
+  PGRE.ptcFlips = function (k, t) {
+    var r = row(k);
+    return r && r[t] ? r[t][0] === 1 : null;
+  };
+  /* The two factors used under t. A dipole term is written with S, which
+     fixes its P and T signs; under C the dipole's own charge flips, so C
+     uses d or mu (cA) instead of S. */
+  function factors(x, t) { return [t === 'C' && x.cA ? x.cA : x.a, x.b]; }
+  /* true when the scalar term changes sign under t, so t is violated. */
+  PGRE.ptcTermOdd = function (id, t) {
+    var x = term(id);
+    if (!x) return null;
+    var f = factors(x, t);
+    return PGRE.ptcFlips(f[0], t) !== PGRE.ptcFlips(f[1], t);
+  };
+  PGRE.ptcRows = ROWS;
+  PGRE.ptcTerms = TERMS;
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function tex(t) {
+    if (window.katex) {
+      try { return window.katex.renderToString(t, { throwOnError: false }); } catch (e) { /* fall through */ }
+    }
+    return esc(t);
+  }
+  /* Text with $...$ segments typeset inline. */
+  function rich(s) {
+    return String(s).split(/(\$[^$]+\$)/).map(function (seg) {
+      return /^\$[^$]+\$$/.test(seg) ? tex(seg.slice(1, -1)) : esc(seg);
+    }).join('');
+  }
+
+  var CSS =
+    '.card-diagram-host.ptc-lab{aspect-ratio:auto;cursor:auto;touch-action:auto;user-select:text;-webkit-user-select:text;overflow:visible;padding:12px}' +
+    '.ptc-lab .ptc-row{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 6px}' +
+    '.ptc-lab .ptc-on{border-color:var(--ink);font-weight:600}' +
+    '.ptc-lab .ptc-say{font-size:13px;color:var(--muted);margin:2px 0 10px;min-height:20px}' +
+    '.ptc-lab .ptc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}' +
+    '.ptc-lab .ptc-q{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg);min-width:0;color:var(--muted)}' +
+    '.ptc-lab .ptc-q.is-flip{color:#D85A30}.ptc-lab .ptc-q.is-stay{color:#1D9E75}' +
+    '.ptc-lab .ptc-nm{font-size:12px;color:var(--muted)}' +
+    '.ptc-lab .ptc-sy{font-size:15px;color:var(--ink);margin:2px 0}' +
+    '.ptc-lab .ptc-why{font-size:12px;color:var(--muted);min-height:32px;line-height:1.4}' +
+    '.ptc-lab .ptc-arr{transition:transform .5s ease;transform-origin:50px 10px}' +
+    '.ptc-lab .ptc-q.is-flip .ptc-arr{transform:rotate(180deg)}' +
+    '.ptc-lab .ptc-sec{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}' +
+    '.ptc-lab .ptc-h{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px}' +
+    '.ptc-lab .ptc-out{font-size:13px;line-height:1.7;min-height:22px;color:var(--ink)}' +
+    '.ptc-lab .ptc-bad{color:#D85A30}.ptc-lab .ptc-ok{color:#1D9E75}';
+  function ensureStyle() {
+    if (document.getElementById('ptc-lab-style')) return;
+    var st = document.createElement('style');
+    st.id = 'ptc-lab-style';
+    st.textContent = CSS;
+    document.head.appendChild(st);
+  }
+
+  function btn(attr, html) {
+    return '<button type="button" class="btn btn-ghost btn-sm" ' + attr + '>' + html + '</button>';
+  }
+
+  PGRE.cardDiagrams['supp-p-t-c-transformations'] = function (host) {
+    ensureStyle();
+    host.classList.add('ptc-lab');
+    var html = '<div class="ptc-row">' +
+      btn('data-ptc-t="P"', 'Mirror&nbsp;' + tex('P')) +
+      btn('data-ptc-t="T"', 'Rewind&nbsp;' + tex('T')) +
+      btn('data-ptc-t="C"', 'Antimatter&nbsp;' + tex('C')) + '</div>' +
+      '<div class="ptc-say" data-ptc-say>Choose a transformation. Coral arrows flip, teal arrows stay.</div>' +
+      '<div class="ptc-grid">';
+    ROWS.forEach(function (r) {
+      html += '<div class="ptc-q" data-ptc-q="' + r.k + '">' +
+        '<div class="ptc-nm">' + esc(r.name) + (r.axial ? ' (axial)' : '') + '</div>' +
+        '<div class="ptc-sy">' + tex(r.sym) + '</div>' +
+        '<svg width="100" height="20" viewBox="0 0 100 20" aria-hidden="true"><g class="ptc-arr">' +
+        '<line x1="12" y1="10" x2="84" y2="10" stroke="currentColor" stroke-width="3"/>' +
+        '<polygon points="84,4 96,10 84,16" fill="currentColor"/></g></svg>' +
+        '<div class="ptc-why" data-ptc-why></div></div>';
+    });
+    html += '</div>' +
+      '<div class="ptc-sec"><div class="ptc-h">Term tester: multiply the signs of the factors</div><div class="ptc-row">';
+    TERMS.forEach(function (x) { html += btn('data-ptc-term="' + x.id + '"', tex(x.tex)); });
+    html += '</div><div class="ptc-out" data-ptc-termout></div></div>' +
+      '<div class="ptc-sec"><div class="ptc-h">Predict first</div>' +
+      '<div class="ptc-out" data-ptc-quiz></div><div class="ptc-row">' +
+      btn('data-ptc-ans="1"', 'Flips') + btn('data-ptc-ans="0"', 'Stays') + btn('data-ptc-next', 'Next') +
+      '</div><div class="ptc-out" data-ptc-fb></div><div class="ptc-nm" data-ptc-score></div></div>';
+    host.innerHTML = html;
+
+    function q(sel) { return host.querySelector(sel); }
+    function apply(t) {
+      var b = host.querySelectorAll('[data-ptc-t]');
+      for (var i = 0; i < b.length; i++) b[i].classList.toggle('ptc-on', b[i].getAttribute('data-ptc-t') === t);
+      q('[data-ptc-say]').innerHTML = rich(SLOGAN[t]);
+      ROWS.forEach(function (r) {
+        var el = q('[data-ptc-q="' + r.k + '"]');
+        var f = r[t][0] === 1;
+        el.classList.remove('is-flip', 'is-stay');
+        void el.offsetWidth;
+        el.classList.add(f ? 'is-flip' : 'is-stay');
+        el.querySelector('[data-ptc-why]').innerHTML =
+          '<span class="' + (f ? 'ptc-bad' : 'ptc-ok') + '">' + (f ? 'flips' : 'stays') + '</span>: ' + rich(r[t][1]);
+      });
+    }
+    function sign(f) { return f ? '(-)' : '(+)'; }
+    function showTerm(id) {
+      var x = term(id);
+      var b = host.querySelectorAll('[data-ptc-term]');
+      for (var i = 0; i < b.length; i++) b[i].classList.toggle('ptc-on', b[i].getAttribute('data-ptc-term') === id);
+      var out = rich('$' + x.tex + '$, ' + x.label + ':') + '<br>';
+      out += ['P', 'T', 'C'].map(function (t) {
+        var odd = PGRE.ptcTermOdd(id, t), f = factors(x, t);
+        return tex(t + ':\\ ' + sign(PGRE.ptcFlips(f[0], t)) + sign(PGRE.ptcFlips(f[1], t)) + ' = ' + (odd ? '-' : '+')) +
+          ' <span class="' + (odd ? 'ptc-bad' : 'ptc-ok') + '">' + (odd ? 'violates ' + tex(t) : 'allowed') + '</span>';
+      }).join('&nbsp;&nbsp;|&nbsp;&nbsp;');
+      if (x.neutral) {
+        out += '<br><span class="ptc-nm">' + rich('Under $C$ the dipole itself flips with its charge, so the $C$ row uses $' + (x.cA === 'd' ? '\\mathbf{d}' : '\\boldsymbol{\\mu}') + '$, not $\\mathbf{S}$. $C$ also turns a neutron into an antineutron, so measuring the neutron alone does not test $C$.') + '</span>';
+      }
+      q('[data-ptc-termout]').innerHTML = out;
+    }
+    var cur = null, done = false, right = 0, asked = 0;
+    function nextQuiz() {
+      var r = ROWS[Math.floor(Math.random() * ROWS.length)];
+      var t = 'PTC'.charAt(Math.floor(Math.random() * 3));
+      cur = { r: r, t: t };
+      done = false;
+      q('[data-ptc-quiz]').innerHTML = rich('Under ' + NAMES[t] + ', what happens to ' + r.name.toLowerCase() + ' $' + r.sym + '$?');
+      q('[data-ptc-fb]').innerHTML = '';
+    }
+    function answer(f) {
+      if (done || !cur) return;
+      done = true;
+      asked++;
+      var truth = cur.r[cur.t][0] === 1;
+      var ok = truth === f;
+      if (ok) right++;
+      q('[data-ptc-fb]').innerHTML = '<span class="' + (ok ? 'ptc-ok' : 'ptc-bad') + '">' + (ok ? 'Right' : 'Not quite') + '</span>: it ' +
+        (truth ? 'flips' : 'stays') + ', because ' + rich(cur.r[cur.t][1]) + '.';
+      q('[data-ptc-score]').textContent = right + ' of ' + asked + ' right';
+    }
+    host.addEventListener('click', function (ev) {
+      var el = ev.target && ev.target.closest ? ev.target.closest('button') : null;
+      if (el && host.contains(el)) {
+        if (el.hasAttribute('data-ptc-t')) apply(el.getAttribute('data-ptc-t'));
+        else if (el.hasAttribute('data-ptc-term')) showTerm(el.getAttribute('data-ptc-term'));
+        else if (el.hasAttribute('data-ptc-ans')) answer(el.getAttribute('data-ptc-ans') === '1');
+        else if (el.hasAttribute('data-ptc-next')) nextQuiz();
+      }
+      ev.stopPropagation();
+    });
+    nextQuiz();
+  };
+})();

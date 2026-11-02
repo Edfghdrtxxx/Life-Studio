@@ -120,6 +120,32 @@ assert(v.field[1] === 0 && v.a[0] === 0 && v.a[1] === 0,
 assert(v.theta > 0.3 && v.theta < 1.2,
   'theta is an oblique angle so a_parallel and a_perp are both visible');
 
+console.log('\nparity, time reversal and charge conjugation lab');
+var ptc = byId['supp-p-t-c-transformations'];
+assert(!!ptc && typeof PGRE.cardDiagrams['supp-p-t-c-transformations'] === 'function',
+  'supp-p-t-c-transformations has a lab mount');
+assert(/data-card-diagram="supp-p-t-c-transformations"/.test(PGRE.replaceRecallListWithDiagram(ptc.back, ptc.id)) &&
+  PGRE.replaceRecallListWithDiagram(ptc.back, ptc.id).indexOf('card-key') !== -1,
+  'the lab replaces the bullets and keeps the key sentence');
+var flipsWant = {
+  r: [1, 0, 0], p: [1, 1, 0], S: [0, 1, 0], E: [1, 0, 1],
+  B: [0, 1, 1], d: [1, 0, 1], mu: [0, 1, 1]
+};
+Object.keys(flipsWant).forEach(function (k) {
+  ['P', 'T', 'C'].forEach(function (t, i) {
+    assert(PGRE.ptcFlips(k, t) === (flipsWant[k][i] === 1),
+      k + ' under ' + t + (flipsWant[k][i] ? ' flips' : ' stays'));
+  });
+});
+assert(PGRE.ptcTermOdd('SE', 'P') && PGRE.ptcTermOdd('SE', 'T') && !PGRE.ptcTermOdd('SE', 'C'),
+  'an electric dipole moment along S violates P and T, not C');
+assert(!PGRE.ptcTermOdd('SB', 'P') && !PGRE.ptcTermOdd('SB', 'T') && !PGRE.ptcTermOdd('SB', 'C'),
+  'a magnetic moment along S violates nothing');
+assert(PGRE.ptcTermOdd('Sp', 'P') && !PGRE.ptcTermOdd('Sp', 'T') && !PGRE.ptcTermOdd('Sp', 'C'),
+  'helicity violates P only');
+assert(PGRE.ptcTermOdd('EB', 'P') && PGRE.ptcTermOdd('EB', 'T') && !PGRE.ptcTermOdd('EB', 'C'),
+  'E dot B violates P and T, not C');
+
 console.log('\nshell wiring');
 var index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 assert(/<script src="js\/card-diagrams\.js\?v=\d{8}[a-z]" defer><\/script>/.test(index),
