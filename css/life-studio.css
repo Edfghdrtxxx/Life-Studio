@@ -421,6 +421,30 @@ a.subj-tile { display: block; text-decoration: none; color: inherit; }
 .hm-wk-x { display: flex; gap: 8px; font: 10.5px var(--mono); color: var(--ink-2); margin-top: 3px; }
 .hm-wk-x span { flex: 1; text-align: center; }
 
+/* ——— Topic strip (subject home): nine tiles, code + card count + due ——— */
+.topic-strip {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+.topic-strip a {
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 4px;
+  text-align: center;
+  font: 11px var(--mono);
+  color: var(--ink-2);
+  text-decoration: none;
+}
+.topic-strip a:hover { border-color: var(--ink-2); color: var(--ink); }
+.topic-strip a b {
+  display: block;
+  font: 500 14px var(--sans);
+  color: var(--ink);
+}
+
 /* ——— Narrow windows: the app's own breakpoints ——— */
 @media (max-width: 1080px) {
   .ls-grid4, .mem-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -430,6 +454,7 @@ a.subj-tile { display: block; text-decoration: none; color: inherit; }
   .ed-list-col { display: none; }
   .ed-list-col.open { display: block; }
   .ed-pick { display: block; }
+  .topic-strip { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
 @media (max-width: 860px) {
   .h1 { font-size: 32px; }
@@ -443,4 +468,5 @@ a.subj-tile { display: block; text-decoration: none; color: inherit; }
   .ls-grid3, .ls-grid4, .mem-grid { grid-template-columns: minmax(0, 1fr); }
   .hz-key { font-size: 10px; }
   .sec-head .btn-row { width: 100%; }
+  .topic-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
