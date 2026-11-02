@@ -801,6 +801,9 @@ PGRE.views.dashboard = (function () {
       var card = document.getElementById(id);
       var title = document.getElementById('intensity-title');
       if (!card) return;
+      // Round 2: the card lives inside a folded archive card — open it.
+      var fold = card.closest('details');
+      if (fold && !fold.open) fold.open = true;
       card.scrollIntoView({ block: 'start' });
       if (title) title.focus({ preventScroll: true });
     }, 0);

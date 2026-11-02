@@ -52,7 +52,7 @@ async function helpers(page) {
   };
 
   h.openLibrary = async function () {
-    await page.eval('() => { location.hash = "#/library"; if (PGRE.route) PGRE.route(); }');
+    await page.eval('() => { location.hash = "#/settings"; if (PGRE.route) PGRE.route(); }');
     await h.wait('!!document.getElementById("disk-backup-card")', 'the disk backup card');
     await page.eval('() => { var el = document.getElementById("disk-backup-card"); if (el) el.scrollIntoView(); }');
   };
@@ -95,7 +95,7 @@ async function helpers(page) {
 
 var STAGES = [
   { name: 'without a disk helper, 25 saves still refresh the browser copy', size: '1100x900', shot: 'backup-no-token', run: async function (page, h) {
-    await page.open(process.env.PGRE_BACKUP_TEST_URL + '#/library');
+    await page.open(process.env.PGRE_BACKUP_TEST_URL + '#/settings');
     await h.wait('!!document.getElementById("main")', '#main');
     await h.seed();
     await h.openLibrary();
@@ -134,7 +134,7 @@ var STAGES = [
     h.assert(!info.verified, 'a fake ok:true reply is not a verified snapshot');
   } },
   { name: 'backup success and leftover copy removed after ack', size: '1100x900', shot: 'backup-success', run: async function (page, h) {
-    await page.open(process.env.PGRE_BACKUP_TEST_URL + '#/library');
+    await page.open(process.env.PGRE_BACKUP_TEST_URL + '#/settings');
     await h.wait('!!document.getElementById("main")', '#main');
     await h.configure();
     await h.seed();

@@ -463,8 +463,10 @@ async function main() {
       await waitFor('document.readyState === "complete" && !window.PGRE', 'blank page');
       await ev('localStorage.clear(); sessionStorage.clear(); localStorage.setItem("pgre-state-v1", ' +
         JSON.stringify(JSON.stringify(seed)) + '); true');
-      await go(base + '/#/');
+      await go(base + '/#/plan');
       await waitFor('!!document.getElementById("intensity-card")', 'the Intensity card');
+      // Round 2: the card sits inside a folded archive card — open it first.
+      await ev('(function(){var c=document.getElementById("intensity-card");var d=c&&c.closest("details");if(d&&!d.open)d.open=true;return true;})()');
       await sleep(300);
     }
     /* The card as a reader meets it. A row's own chip is the direct child of
@@ -564,9 +566,9 @@ async function main() {
       var card = await readCard();
 
       if (s === 0) {
-        var at = card.order.indexOf('st-active-target');
-        check(at >= 0 && card.order[at + 1] === 'intensity-card',
-          'the Intensity card sits right after the Daily activity target card');
+        check(await ev('(function(){var d=document.getElementById("intensity-card")&&document.getElementById("intensity-card").closest("details");' +
+          'return !!d && !!d.querySelector("#intensity-card");})()'),
+          'the Intensity card sits inside the folded archive card');
         check(Object.keys(card.rows).join(',') === METRICS.join(','),
           'five readings, Daily work first: ' + Object.keys(card.rows).join(', '));
       }
@@ -721,8 +723,9 @@ async function main() {
         var focusHref = await ev('(function(){var a=document.querySelector("#intensity-adjust .intensity-focus a.btn");return a?a.getAttribute("href"):null;})()');
         check(focusHref === '#/practice/cm/new' || focusHref === '#/topic/cm',
           'with a link into that topic (' + focusHref + ')');
-        await go(base + '/#/');
+        await go(base + '/#/plan');
         await waitFor('!!document.getElementById("intensity-card")', 'the Intensity card after a reload');
+        await ev('(function(){var c=document.getElementById("intensity-card");var d=c&&c.closest("details");if(d&&!d.open)d.open=true;return true;})()');
         await sleep(300);
         check(await ev('document.getElementById("intensity-topics").open') === true, 'the table is still open after a reload');
         var stateKeys = await ev('Object.keys(JSON.parse(localStorage.getItem("pgre-state-v1")).settings).sort().join(",")');
@@ -763,8 +766,9 @@ async function main() {
         var rBad = await strip();
         check(rBad.n === 14 && rBad.custom === '14' && rBad.saved === 14,
           'a custom 200 (over 90) changes nothing and puts 14 back in the field (got ' + JSON.stringify(rBad) + ')');
-        await go(base + '/#/');
+        await go(base + '/#/plan');
         await waitFor('!!document.getElementById("intensity-week")', 'the strip after a reload');
+        await ev('(function(){var c=document.getElementById("intensity-card");var d=c&&c.closest("details");if(d&&!d.open)d.open=true;return true;})()');
         await sleep(300);
         var rReload = await strip();
         check(rReload.n === 14 && rReload.custom === '14', 'the custom 14 days survive a reload');
@@ -915,9 +919,10 @@ async function main() {
         /* Follow the summary's own link back to the dashboard. */
         var link = await ev('(function(){var a=document.querySelector(".intensity-summary-link");' +
           'return {href:a.getAttribute("href"),focus:a.getAttribute("data-dash-focus")};})()');
-        check(link.href === '#/' && link.focus === 'intensity-card', 'the summary link points at the Intensity card');
+        check(link.href === '#/plan' && link.focus === 'intensity-card', 'the summary link points at the Intensity card');
         await clickOn('.intensity-summary-link');
-        await waitFor('!!document.getElementById("intensity-card")', 'the Intensity card after the pack');
+        await waitFor('!!document.getElementById("intensity-card") && location.hash === "#/plan"',
+          'the Intensity card after the pack');
         await sleep(900);
         var landed = await ev('(function(){var r=document.getElementById("intensity-card").getBoundingClientRect();' +
           'var bar=document.getElementById("topbar").getBoundingClientRect();var a=document.activeElement;' +
@@ -941,10 +946,11 @@ async function main() {
         check(card2.rows.repeatMinutes.delta === '' && card2.rows.dailyWork.delta === '',
           'a reading the pack did not move shows no change');
         await shotOf('#intensity-card', 'intensity-card-after-pack.png', rowSel('newQuestions'));
-        await ev('location.hash = "#/plan"; true');
-        await waitFor('!document.getElementById("intensity-card")', 'another page');
         await ev('location.hash = "#/"; true');
-        await waitFor('!!document.getElementById("intensity-card")', 'the dashboard again');
+        await waitFor('!document.getElementById("intensity-card")', 'another page');
+        await ev('location.hash = "#/plan"; true');
+        await waitFor('!!document.getElementById("intensity-card")', 'the archive again');
+        await ev('(function(){var c=document.getElementById("intensity-card");var d=c&&c.closest("details");if(d&&!d.open)d.open=true;return true;})()');
         await sleep(400);
         var card3 = await readCard();
         check(METRICS.every(function (m) { return card3.rows[m].delta === ''; }) &&

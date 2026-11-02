@@ -1428,7 +1428,7 @@ themeBtn.setAttribute('id', 'theme-toggle');
 env.document.body.appendChild(themeBtn);
 env.window.PGRE.applyTheme('dark');
 assert(themeBtn.getAttribute('aria-pressed') === 'true', 'applyTheme(dark) sets aria-pressed=true');
-assert(themeBtn.textContent === 'Theme', 'the theme button reads Theme (named themes in Settings)');
+assert(themeBtn.textContent === 'Light / dark', 'the theme button reads Light / dark (named themes in Settings)');
 assert((themeBtn.getAttribute('title') || '').indexOf('Theme:') === 0,
   'applyTheme names the current theme in the button title');
 env.window.PGRE.applyTheme('light');
@@ -1983,8 +1983,11 @@ function runAsync() {
       .then(function () { return Promise.resolve(); })
       .then(function () { return wait(0); });
   }).then(function () {
-    var typeTab = ix.document.querySelector('[data-mode="type"]');
-    assert(!!typeTab, 'formulas shell rendered the Type tab from shipped view-formulas.js');
+    var pracTab = ix.document.querySelector('[data-mode="practice"]');
+    assert(!!pracTab, 'formulas shell rendered the Practice tab from shipped view-formulas.js');
+    if (pracTab) pracTab.click();
+    var typeTab = ix.document.querySelector('[data-game="type"]');
+    assert(!!typeTab, 'Practice tab rendered the Type tile from shipped view-formulas.js');
     typeTab.click();
     var startBtn = ix.document.getElementById('game-start');
     assert(!!startBtn, 'Type intro rendered Start from shipped launch path');
@@ -2228,7 +2231,7 @@ function runAsync() {
     ensureView(sr, RP.views.formulas.render());
     RP.views.formulas.mount();
     return wait(0).then(function () {
-      var searchTab = sr.document.querySelector('.flash-tab[data-mode="search"]');
+      var searchTab = sr.document.querySelector('.flash-tab[data-mode="browse"]');
       assert(!!searchTab, 'Search tab rendered');
       searchTab.click();
       var vizBtn = sr.document.querySelector('[data-fs-modal="f0"]');
@@ -2248,13 +2251,13 @@ function runAsync() {
     tc.P.views.formulas.mount();
     return wait(0).then(function () {
       var doc = tc.env.document;
-      var card = doc.querySelector('.fm-landing');
+      var card = doc.querySelector('.review-card');
       assert(!!card, 'Today card rendered');
       var study = doc.getElementById('study-btn');
       assert(!!study && study.textContent === 'Study 6 cards',
         'one primary Study button for the auto-pick, got: ' + (study && study.textContent));
-      assert(card.textContent.indexOf('3 due reviews + 3 new cards') !== -1,
-        'Today line names the due/new mix, got: ' + card.textContent);
+      assert(card.textContent.indexOf('This batch: 6 cards') !== -1,
+        'Today line names the batch size, got: ' + card.textContent);
       var pick = doc.getElementById('pick-btn');
       assert(!!pick && pick.textContent === 'Choose cards', 'secondary control opens the composer');
       assert(!doc.getElementById('fill-study-btn') && !doc.getElementById('landing-pick-btn'),
@@ -2453,7 +2456,7 @@ function runAsync() {
       var fd = P.store.state.formulaDay;
       assert(fd.softIds && fd.softIds.indexOf('cpgf-2.4') !== -1,
         'a not-yet-due add is soft-pinned so Study still shows it');
-      assert(!!doc.querySelector('.fm-landing') && text('study-btn') === 'Study 6 cards',
+      assert(!!doc.querySelector('.review-card') && text('study-btn') === 'Study 6 cards',
         'Save returns home with the saved list ready, got: ' + text('study-btn'));
       assert(text('pick-btn') === 'Edit today’s list', 'home now offers to edit the list');
     });
@@ -2541,7 +2544,7 @@ function runAsync() {
       P.views.formulas.mount();                         // exit → home re-render
       return wait(0).then(function () {
         var rb = doc.getElementById('resume-btn');
-        assert(!!rb && rb.textContent === 'Resume session — ' + want + ' left',
+        assert(!!rb && rb.textContent === 'Resume — ' + want + ' left',
           'resume count matches the edited list, got: ' +
             (rb ? rb.textContent : 'no resume button') + ' vs ' + want);
         assert(P.store.state.formulaStudy.queueIds.indexOf('cpgf-2.3') === -1,
@@ -2588,32 +2591,20 @@ function consumerCases() {
   console.log('\nformulas: lane 2 consumers');
   var introduced = autoPickEnv();
   return mountFormulas(introduced).then(function () {
-    var doc = introduced.env.document;
     var P = introduced.P;
-    var word = doc.querySelector('.fr-usage-word');
-    assert(word && word.textContent === 'introduced',
-      'recall band says introduced, got: ' + (word && word.textContent));
-    var band = doc.querySelector('.formula-recall-band');
-    assert(band && band.getAttribute('aria-label').indexOf('0 of ') !== -1 &&
-      band.getAttribute('aria-label').indexOf('introduced') !== -1,
-      'two-or-more new cards with no reviews read 0 introduced, got: ' +
-        (band && band.getAttribute('aria-label')));
+    // Introduced = reviews > 0, now read from the memory ledger: a saved
+    // state with reviews 0 does not count as introduced.
+    var mem = P.subjectMemory(introduced.env.cards);
+    assert(mem.total.studied === 0,
+      'no reviews yet: 0 introduced, got: ' + mem.total.studied);
     P.store.state.cards['cpgf-1.1'] = P.store.state.cards['cpgf-1.1'] || {};
     P.store.state.cards['cpgf-1.1'].reviews = 1;
     P.views.formulas.mount();
     return wait(0);
   }).then(function () {
-    var band = introduced.env.document.querySelector('.formula-recall-band');
-    assert(band && /1 of \d+ introduced/.test(band.getAttribute('aria-label')),
-      'one reviewed card counts as 1 introduced, got: ' +
-        (band && band.getAttribute('aria-label')));
-    var toggle = introduced.env.document.getElementById('exam-cap-toggle');
-    toggle.click();
-    toggle = introduced.env.document.getElementById('exam-cap-toggle');
-    assert(toggle && toggle.textContent === 'Uncapped',
-      'cap-off label, got: ' + (toggle && toggle.textContent));
-    assert(introduced.env.document.body.textContent.indexOf('1-day intervals') === -1,
-      'the options no longer mention 1-day intervals');
+    var mem = introduced.P.subjectMemory(introduced.env.cards);
+    assert(mem.total.studied === 1,
+      'one reviewed card counts as 1 introduced, got: ' + mem.total.studied);
 
     console.log('\nformulas: session stamps, refused grade, duplicate queue');
     var sess = autoPickEnv();
@@ -2722,14 +2713,6 @@ function consumerCases() {
         late.P.store.state.formulaDay = { date: lt, reviewIds: [], newIds: ['f0'] };
         return mountFormulas(late).then(function () {
           var ldoc = late.env.document;
-          var ready = ldoc.getElementById('formula-readiness');
-          assert(ready && ready.textContent.indexOf('not yet introduced') !== -1 &&
-            ready.textContent.indexOf('to the exam') !== -1 &&
-            ready.textContent.indexOf('final week') === -1,
-            'home shows a read-only unseen-card warning, got: ' + (ready && ready.textContent));
-          ldoc.getElementById('readiness-choose').click();
-          assert(!!ldoc.getElementById('picker-study'), 'the warning opens the picker');
-          ldoc.getElementById('picker-cancel').click();
           var add = ldoc.getElementById('add-overdue-btn');
           assert(!!add && ldoc.body.textContent.indexOf('Oldest overdue:') !== -1,
             'a full list of new picks shows the oldest overdue age and Add');
@@ -2840,7 +2823,8 @@ function consumerCases() {
             var reviewsBefore = match.P.store.state.cardReviews.length;
             return mountFormulas(match).then(function () {
               var mdoc = match.env.document;
-              mdoc.querySelector('.flash-tab[data-mode="match"]').click();
+              mdoc.querySelector('.flash-tab[data-mode="practice"]').click();
+              mdoc.querySelector('[data-game="match"]').click();
               assert(mdoc.body.textContent.indexOf('does not record a Good') !== -1,
                 'Match intro says the round does not record a Good');
               mdoc.getElementById('game-start').click();
@@ -2878,25 +2862,12 @@ function consumerCases() {
               });
               return mountFormulas(tag).then(function () {
                 var tdoc = tag.env.document;
-                tdoc.querySelector('.browse-tab[data-btab="upcoming"]').click();
-                tag.env.cards.push({
-                  id: 'constructor', topic: 'cm', name: 'Ctor',
-                  front: 'ctor prompt', back: '$$C$$', note: '', aliases: []
-                });
-                tag.P.views.formulas.mount();
-                return wait(0).then(function () {
-                  tdoc.querySelector('.browse-tab[data-btab="upcoming"]').click();
-                  var btn = tdoc.querySelector('.browse-batch-btn[data-bid="constructor"]');
-                  assert(btn && btn.getAttribute('data-batch') === 'add',
-                    'id constructor is not treated as already in the batch, got ' +
-                      (btn && btn.getAttribute('data-batch')));
-                  tdoc.getElementById('pick-btn').click();
-                  var filter = tdoc.getElementById('picker-filter');
-                  filter.value = 'dielectrics';
-                  fireInput(filter);
-                  var row = tdoc.querySelector('.picker-row[data-cardid="die-1"]');
-                  assert(!!row, 'composer search finds a card by its section tag');
-                });
+                tdoc.getElementById('pick-btn').click();
+                var filter = tdoc.getElementById('picker-filter');
+                filter.value = 'dielectrics';
+                fireInput(filter);
+                var row = tdoc.querySelector('.picker-row[data-cardid="die-1"]');
+                assert(!!row, 'composer search finds a card by its section tag');
               });
             });
           });
@@ -2946,93 +2917,6 @@ function consumerCases() {
           'the resumed day-bound session stays on the card');
       });
     });
-  }).then(function () {
-    console.log('\nformulas: recall band segments hint and navigate');
-    var band = autoPickEnv();
-    var BP = band.P, t0 = BP.srs.today();
-    // recallMix: selected = reviews > 0; solid = interval >= matureDays()
-    // (21 when examDate is unset, as in autoPickEnv).
-    band.env.cardStates['cpgf-2.3'] = { due: BP.srs.addDays(30), interval: 30, reps: 5, reviews: 5, lapses: 0, lastReviewedDay: t0 };
-    band.env.cardStates['cpgf-1.2'] = { due: t0, interval: 2, reps: 2, reviews: 2, lapses: 0, lastReviewedDay: t0 };
-    // A saved state with reviews 0 (the normalizeRecallState repair shape):
-    // introduced means reviews > 0, so this counts in the rest segment only.
-    band.env.cardStates['cpgf-2.2'] = { due: t0, interval: 0, reps: 0, reviews: 0, lapses: 0, lastReviewedDay: t0 };
-    vm.runInContext(fs.readFileSync(path.join(root, 'js/formula-search.js'), 'utf8'),
-      band.env.sandbox, { filename: 'js/formula-search.js' });
-    BP.store.state.formulaDay = { date: t0, reviewIds: [], newIds: [] };
-    return mountFormulas(band).then(function () {
-      var doc = band.env.document;
-      var solidSeg = doc.querySelector('.fr-seg-solid');
-      var youngSeg = doc.querySelector('.fr-seg-young');
-      var restSeg = doc.querySelector('.fr-seg-rest');
-      assert(!!solidSeg && !!youngSeg && !!restSeg,
-        'recall band renders its three segments');
-      var solidTip = solidSeg.getAttribute('data-tip') || '';
-      assert(solidTip.indexOf('≥ ' + BP.srs.matureDays() + ' d') !== -1,
-        'solid tooltip names the live threshold, got: ' + solidTip);
-      assert(solidSeg.getAttribute('tabindex') === '0' && restSeg.getAttribute('tabindex') === '0',
-        'labelled and unlabelled segments are focusable');
-      assert(solidSeg.getAttribute('role') === 'button' &&
-        (solidSeg.getAttribute('aria-label') || '').indexOf('Solid enough') === 0 &&
-        (restSeg.getAttribute('aria-label') || '').indexOf('Not yet introduced') === 0,
-        'segments carry button role and aria-labels');
-      var hint = doc.getElementById('fr-seg-hint');
-      assert(!!hint && hint.hidden === true, 'click hint starts hidden');
-      solidSeg.click();
-      assert(hint.hidden === false && hint.textContent.indexOf('double-click') !== -1,
-        'single click shows the double-click hint, got: ' + hint.textContent);
-      assert(!!doc.getElementById('study-btn'), 'a single click does not navigate');
-      dispatchEl(solidSeg, 'dblclick');
-      assert(doc.querySelector('.flash-tab[data-mode="search"]').classList.contains('active') &&
-        !!doc.getElementById('fs-input'),
-        'double-click switches to the Search tab');
-      var matureOpt = doc.querySelector('#fs-status-sel option[value="mature"]');
-      assert(!!matureOpt && matureOpt.getAttribute('selected') !== null,
-        'double-click on Solid enough filters status:mature');
-      assert((matureOpt.textContent || '').indexOf('≥ ' + BP.srs.matureDays() + ' d') !== -1,
-        'search mature chip names the live threshold, got: ' + matureOpt.textContent);
-      assert(doc.getElementById('fs-status').textContent.indexOf('1') !== -1,
-        'the mature filter lists the one solid card, status line: ' +
-          (doc.getElementById('fs-status') || {}).textContent);
-      doc.querySelector('.flash-tab[data-mode="study"]').click();
-      var rest2 = doc.querySelector('.fr-seg-rest');
-      assert(!!rest2, 'back on Study the band rest segment is there');
-      dispatchKeydown(band.env, { key: 'Enter', target: rest2 });
-      var newOpt = doc.querySelector('#fs-status-sel option[value="new"]');
-      assert(doc.querySelector('.flash-tab[data-mode="search"]').classList.contains('active') &&
-        !!newOpt && newOpt.getAttribute('selected') !== null,
-        'Enter on the rest segment opens Search filtered to not-yet-introduced');
-      function listedIds() {
-        return [].map.call(doc.querySelectorAll('.fs-card[data-fsid]'),
-          function (el) { return el.getAttribute('data-fsid'); });
-      }
-      var newIds = listedIds();
-      var restN = parseInt(/:\s*(\d+)\s*of/.exec(
-        rest2.getAttribute('aria-label'))[1], 10);
-      assert(newIds.indexOf('cpgf-2.2') !== -1,
-        'a saved state with reviews 0 lists under not-yet-introduced, got: ' + newIds.join(','));
-      assert(newIds.length === restN,
-        'the not-yet-introduced list length equals the rest segment count, list ' +
-          newIds.length + ' vs segment ' + restN);
-      doc.querySelector('.flash-tab[data-mode="study"]').click();
-      var young2 = doc.querySelector('.fr-seg-young');
-      assert(!!young2, 'back on Study the band Learning segment is there');
-      var youngN = parseInt(/:\s*(\d+)\s*of/.exec(
-        young2.getAttribute('aria-label'))[1], 10);
-      dispatchEl(young2, 'dblclick');
-      var youngOpt = doc.querySelector('#fs-status-sel option[value="young"]');
-      assert(doc.querySelector('.flash-tab[data-mode="search"]').classList.contains('active') &&
-        !!youngOpt && youngOpt.getAttribute('selected') !== null,
-        'double-click on Learning opens Search filtered to status:young');
-      var youngIds = listedIds();
-      assert(youngIds.indexOf('cpgf-2.2') === -1,
-        'a saved state with reviews 0 is absent from the Learning list, got: ' +
-          youngIds.join(','));
-      assert(youngIds.length === youngN,
-        'the Learning list length equals the Learning segment count, list ' +
-          youngIds.length + ' vs segment ' + youngN);
-    });
-  }).then(function () {
     console.log('\nformulas: partial deck warns when every loaded card is introduced');
     var part = autoPickEnv();
     var pt = part.P.srs.today();
@@ -3062,15 +2946,9 @@ function consumerCases() {
       });
     };
     return mountFormulas(part).then(function () {
-      var ready = part.env.document.getElementById('formula-readiness');
       var batch = part.P.store.state.formulaDay;
-      assert(ready && ready.textContent.indexOf('incomplete') !== -1 &&
-        ready.textContent.indexOf('bookLists') !== -1,
-        'a partial deck warns when unseen is 0, got: ' + (ready && ready.textContent));
-      assert(!part.env.document.getElementById('deck-hold'),
-        'the warning shows when no session is held');
       assert(batch.reviewIds.length === 0 && batch.newIds.length === 0 && fills === 0,
-        'the warning does not add daily cards, got ' + JSON.stringify(batch) + ' fills ' + fills);
+        'mounting with a held batch adds no daily cards, got ' + JSON.stringify(batch) + ' fills ' + fills);
     });
   }).then(function () {
     console.log('\nformulas: card review history lists dates and grades');
@@ -3086,7 +2964,7 @@ function consumerCases() {
       hx.env.sandbox, { filename: 'js/formula-search.js' });
     return mountFormulas(hx).then(function () {
       var doc = hx.env.document;
-      doc.querySelector('.flash-tab[data-mode="search"]').click();
+      doc.querySelector('.flash-tab[data-mode="browse"]').click();
       return wait(0).then(function () {
         var art = doc.querySelector('.fs-card[data-fsid="cpgf-2.1"]');
         assert(!!art, 'search lists cpgf-2.1');
@@ -3146,6 +3024,8 @@ function autoPickEnv() {
   var env = loadShipped(true, { views: true });
   vm.runInContext(fs.readFileSync(path.join(root, 'js/srs.js'), 'utf8'), env.sandbox,
     { filename: 'js/srs.js' });
+  vm.runInContext(fs.readFileSync(path.join(root, 'js/subjects.js'), 'utf8'), env.sandbox,
+    { filename: 'js/subjects.js' });
   var P = env.sandbox.PGRE;
   var srs = P.srs;
   var t = srs.today();

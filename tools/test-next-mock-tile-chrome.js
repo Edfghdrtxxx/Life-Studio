@@ -62,8 +62,8 @@ async function helpers(page) {
 
   h.open = async function () {
     await page.open(URL);
-    await h.wait('typeof PGRE !== "undefined" && typeof PGRE.nextMockPointer === "function" && !!document.getElementById("today-agenda")',
-      'dashboard with nextMockPointer');
+    await h.wait('typeof PGRE !== "undefined" && typeof PGRE.nextMockPointer === "function" && !!document.getElementById("view")',
+      'app with nextMockPointer');
   };
 
   h.ensureCatalog = async function () {
@@ -146,23 +146,29 @@ async function helpers(page) {
       if (location.hash !== '#/' && location.hash !== '') location.hash = '#/';
       PGRE.route();
     });
-    await h.wait('!!document.getElementById("today-agenda")', '#today-agenda');
+    await h.wait('!!document.querySelector("#view .h1") && document.querySelector("#view .h1").textContent === "Today"', 'today page');
   };
 
   h.tile = async function () {
+    /* Round 2: the next-mock surface is the exam lobby's .exam-next-mock
+       card. */
+    await h.showExam();
     return JSON.parse(await page.eval(function () {
-      var mockRow = null;
-      document.querySelectorAll('#today-agenda .rq-row.rq-tile').forEach(function (row) {
-        var k = row.querySelector('.rq-kicker');
-        if (k && /Mock exam/i.test(k.textContent)) mockRow = row;
-      });
+      var next = document.querySelector('.exam-next-mock');
+      var btn = next && next.querySelector('[data-replay]');
+      var strong = next && next.querySelector('strong');
+      var heading = next && next.querySelector('h2') ? next.querySelector('h2').textContent : '';
+      var locked = heading === 'Next scheduled mock';
+      var m = locked && btn ? /Unlocks (.+)$/.exec(btn.textContent.trim()) : null;
       return JSON.stringify({
         today: PGRE.store.today(),
         pointer: PGRE.nextMockPointer(),
-        status: mockRow && mockRow.querySelector('.rq-status')
-          ? mockRow.querySelector('.rq-status').textContent : '',
-        title: mockRow && mockRow.querySelector('.rq-count')
-          ? mockRow.querySelector('.rq-count').textContent : ''
+        status: locked ? 'Scheduled ' + (m ? m[1].replace(/,\s*\d{4}$/, '') : '') :
+          (btn ? 'Next intact form' : 'Every form sat'),
+        title: strong ? strong.textContent : '',
+        heading: heading,
+        nextId: btn ? btn.getAttribute('data-replay') : null,
+        nextDisabled: btn ? !!btn.disabled : null
       });
     }));
   };
@@ -234,9 +240,9 @@ var STAGES = [
       await h.showDashboard();
       var t = await h.tile();
       h.assert(t.today === '2026-10-11', 'store.today is 2026-10-11, got ' + t.today);
-      h.assert(t.pointer && t.pointer.id === 'gr0877' && t.status === 'Scheduled Oct 11' &&
+      h.assert(t.pointer && t.pointer.id === 'gr0877' && t.status === 'Next intact form' &&
         t.title === 'GR0877 Released Exam (2008)',
-        'on the date the tile still names gr0877, got ' + JSON.stringify(t));
+        'on the date the lobby unlocks gr0877, got ' + JSON.stringify(t));
       await h.showExam();
       var L = await h.lobby();
       h.assert(L.nextId === 'gr0877' && L.nextDisabled === false && L.heading === 'Your next mock',
@@ -274,7 +280,7 @@ var STAGES = [
       h.assert(t.today === '2026-10-18', 'store.today is 2026-10-18, got ' + t.today);
       h.assert(t.pointer && t.pointer.id === 'gr1777' && t.pointer.scheduledFor === '2026-10-18',
         'after gr0877 submitted, today the pointer is gr1777, got ' + JSON.stringify(t.pointer));
-      h.assert(t.status === 'Scheduled Oct 18', 'tile status Scheduled Oct 18, got ' + t.status);
+      h.assert(t.status === 'Next intact form', 'on its date gr1777 is unlocked, got ' + t.status);
       h.assert(t.title === 'GR1777 Released Exam (2017)', 'tile title GR1777, got ' + t.title);
       await h.showExam();
       var L = await h.lobby();

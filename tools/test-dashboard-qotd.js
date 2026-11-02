@@ -163,17 +163,19 @@ function key(k) {
   return prevented;
 }
 
-console.log('dashboard mount binds today’s question');
+console.log('bindQotd (Physics home) binds today’s question');
 
+// The QOTD card moved to the Physics subject home (round 2); view-subject
+// renders qotdCard() and calls this same bindQotd() export.
 dashboard.mount();
+dashboard.bindQotd();
 
 assert(wireCalls === 1, 'mount calls sessionPark.wireDashboard() once');
-assert(bindCalls.length === 1, 'mount binds the QOTD choices via bindChoiceCommit');
+assert(bindCalls.length === 1, 'bindQotd binds the QOTD choices via bindChoiceCommit');
 assert(bindCalls.length && bindCalls[0].body === elFor('qotd-body'),
        'bindChoiceCommit receives the qotd-body element');
 assert(typeof (bindCalls[0] && bindCalls[0].opts.onCommit) === 'function',
        'bindChoiceCommit receives an onCommit handler');
-
 console.log('A–E select + Enter commits through the recorded controller');
 
 key('b');                                        // select choice B (idx 1)
@@ -192,8 +194,8 @@ assert(PGRE.store.state.today.qotd && PGRE.store.state.today.qotd.qid === 'q1' &
 console.log('an already-answered day does not rebind');
 
 bindCalls.length = 0;
-dashboard.mount();
-assert(bindCalls.length === 0, 're-mount with today.qotd set does not rebind choices');
+dashboard.bindQotd();
+assert(bindCalls.length === 0, 're-bind with today.qotd set does not rebind choices');
 key('Enter');
 assert(recordCalls.length === 1, 'Enter after a solved day is ignored');
 
