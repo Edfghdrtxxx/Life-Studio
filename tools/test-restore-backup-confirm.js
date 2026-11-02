@@ -126,9 +126,12 @@ function seed(tab) {
 }
 
 console.log('\nindex.html cache token for view-settings.js');
+/* The assert only proves the script tag carries a cache-buster so a changed
+   view-settings.js ships fresh — pin nothing: the value moves every time
+   the view changes (PRs bump it independently). */
 var tokenMatch = indexHtml.match(/<script src="js\/view-settings\.js\?v=([^"]+)"/);
-assert(tokenMatch && tokenMatch[1] === '20261102d',
-  'view-settings.js cache token is 20261102d, got ' + (tokenMatch ? tokenMatch[1] : 'none'));
+assert(tokenMatch && tokenMatch[1].length >= 4,
+  'view-settings.js is loaded with a cache-busting ?v= token, got ' + (tokenMatch ? tokenMatch[1] : 'none'));
 
 console.log('\nCancel leaves the saved state untouched');
 var cancel = makeSandbox();
