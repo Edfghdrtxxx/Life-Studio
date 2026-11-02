@@ -783,7 +783,7 @@ PGRE.views.practice = (function () {
     var html = '<div class="card practice-card practice-resume">' +
       '<h1>Learn transfer</h1>' +
       '<p class="muted">' + PGRE.ui.esc(label) + '</p>' +
-      '<p>Three targeted Physics GRE questions are ready. Start when you are ready to answer them in Prep Studio.</p>' +
+      '<p>Three targeted Physics GRE questions are ready. Start when you are ready to answer them in Life Studio.</p>' +
       '<div class="btn-row">' +
       '<button class="btn btn-primary" id="learn-start-btn">Start transfer</button>' +
       '<a class="btn btn-ghost" href="#/">Not now</a>' +

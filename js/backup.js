@@ -303,7 +303,7 @@ PGRE.backup = (function () {
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
-    a.download = 'physics-gre-progress-' + (PGRE.store.today ? PGRE.store.today() : 'export') + '.json';
+    a.download = 'life-studio-progress-' + (PGRE.store.today ? PGRE.store.today() : 'export') + '.json';
     a.click();
     setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
   }

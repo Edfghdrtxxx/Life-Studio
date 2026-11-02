@@ -230,7 +230,7 @@ PGRE.views.exam = (function () {
     var next = PGRE.nextMockPointer ? PGRE.nextMockPointer() : null;
     var nextExam = next && eng.examById(next.id);
 
-    var html = '<div class="card page-head"><h1>Timed mock exam</h1>' +
+    var html = '<div class="card page-head"><h1>Mock exams</h1>' +
       '<p class="muted">Countdown clock, question palette and flags, with ' +
       '<strong>no feedback until you submit</strong>. Each sitting is scored and feeds ' +
       '<a href="#/analytics">Analytics</a> and the <a href="#/mistakes">mistake book</a>.</p></div>';
@@ -249,6 +249,9 @@ PGRE.views.exam = (function () {
         '</div></div>';
     }
 
+    // Past sittings first (design §6.11 / A29): the archive is the record;
+    // replays sit below.
+    html += historyCard();
     // Protect the next intact form until its scheduled diagnostic date. The
     // current-format draw remains the safe practice path in the meantime.
     if (nextExam) {
@@ -340,9 +343,6 @@ PGRE.views.exam = (function () {
       html += bankNotReady(100, 0, true);
     }
     html += '</div>';
-
-    html += historyCard();
-
     root().innerHTML = html;
     PGRE.typesetMath(root());
 
