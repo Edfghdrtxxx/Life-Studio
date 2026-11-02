@@ -917,79 +917,6 @@ PGRE.views.dashboard = (function () {
   PGRE.nextMockPointer = nextMockPointer;
 
 
-  /* One "today" decision surface: the next move (mixed practice) on its own
-     row, then three equal tiles for the SRS dues (mistakes, recall) and the
-     next intact mock. Each tile reads label, status line, detail, action. */
-  function todayAgendaHTML() {
-    var ui = PGRE.ui;
-    var s = PGRE.store.state;
-    var mock = nextMockPointer();
-    var dueM = PGRE.srs.dueMistakes().length;
-    var openM = PGRE.srs.openMistakes ? PGRE.srs.openMistakes() : [];
-    var stuckM = openM.filter(function (e) { return e.mk && e.mk.stuck; }).length;
-    var mixedCount = Math.min(10, PGRE.allQuestions().length);
-    var mixedCopy = mixedCount
-      ? mixedCount + ' question' + (mixedCount === 1 ? '' : 's') + ' from the daily pool · about ' + Math.max(2, mixedCount * 2) + ' min'
-      : 'The daily pool is waiting for questions';
-    var mixedLabel = mixedCount ? 'Start ' + mixedCount + ' →' : 'Open practice →';
-    var hour = new Date().getHours();
-    var greet = hour < 5 ? 'Burning the midnight oil' :
-                hour < 12 ? 'Good morning' :
-                hour < 18 ? 'Good afternoon' : 'Good evening';
-    // Life Studio: the exam is sat — the countdown and prep runway moved to
-    // the Study plan page (More group); the dashboard hero keeps the greeting.
-    var dateLine = new Date().toLocaleDateString('en-US', {
-      weekday: 'long', month: 'long', day: 'numeric'
-    });
-    var streak = PGRE.store.liveStreak ? PGRE.store.liveStreak() : 0;
-    var lead = streak
-      ? streak + '-day streak. One focused set keeps it moving.'
-      : 'One focused set starts a streak.';
-    var mistakeDetail = openM.length
-      ? openM.length + ' open' + (stuckM ? ' · ' + stuckM + ' keep failing' : '')
-      : 'Missed questions land here for spaced retakes.';
-    var html = '<div class="card review-queue today-agenda-shell" id="today-agenda">' +
-      '<div class="hero">' +
-        '<div class="hero-left">' +
-          '<p class="today-kicker">' + ui.esc(dateLine) + '</p>' +
-          '<h1 class="today-greet">' + ui.esc(greet) + '.</h1>' +
-          '<p class="today-lead">' + ui.esc(lead) + '</p>' +
-        '</div>' +
-      '</div>' +
-      '<div class="rq-rows">' +
-      '<div class="rq-row rq-primary"><div class="rq-row-copy"><span class="rq-kicker">Next up</span>' +
-        '<span class="rq-label">Mixed practice</span>' +
-        '<span class="rq-count">' + ui.esc(mixedCopy) + '</span></div>' +
-        '<a class="btn btn-primary" href="#/practice/all">' + ui.esc(mixedLabel) + '</a></div>' +
-      '<div class="rq-row rq-tile"><div class="rq-row-copy"><span class="rq-kicker">Mistake book</span>' +
-        '<span class="rq-label rq-status">' + (dueM ? dueM + ' due now' : 'Nothing due') + '</span>' +
-        '<span class="rq-count">' + ui.esc(mistakeDetail) + '</span></div>' +
-        '<a class="btn ' + (dueM ? 'btn-primary' : 'btn-ghost') + ' btn-sm" href="#/mistakes">' +
-          (dueM ? 'Drill →' : 'Open →') + '</a></div>' +
-      '<div class="rq-row rq-tile"><div class="rq-row-copy"><span class="rq-kicker">Recall review</span>' +
-        '<span class="rq-label rq-status" id="today-formulas">…</span>' +
-        '<p class="rq-count" id="formula-readiness" hidden></p></div>' +
-        '<button type="button" class="btn btn-ghost btn-sm" id="today-formulas-btn">Study →</button></div>';
-    if (mock) {
-      var todayIso = mockTodayIso();
-      var mockWhen = (mock.scheduledFor && mock.scheduledFor >= todayIso)
-        ? 'Scheduled ' + new Date(mock.scheduledFor + 'T12:00:00').toLocaleDateString('en-US', {
-          month: 'short', day: 'numeric'
-        })
-        : 'Next intact form';
-      html += '<div class="rq-row rq-tile"><div class="rq-row-copy"><span class="rq-kicker">Mock exam</span>' +
-        '<span class="rq-label rq-status">' + ui.esc(mockWhen) + '</span>' +
-        '<span class="rq-count">' + ui.esc(mock.title) + '</span></div>' +
-        '<a class="btn btn-ghost btn-sm" href="#/exam">Open →</a></div>';
-    } else {
-      html += '<div class="rq-row rq-tile"><div class="rq-row-copy"><span class="rq-kicker">Mock exam</span>' +
-        '<span class="rq-label rq-status">Every form sat</span>' +
-        '<span class="rq-count">Review past sittings or run a weighted draw.</span></div>' +
-        '<a class="btn btn-ghost btn-sm" href="#/exam">Open →</a></div>';
-    }
-    html += '</div></div>';
-    return html;
-  }
 
   function formulaStatus(deck) {
     var srs = PGRE.srs;
@@ -1028,48 +955,6 @@ PGRE.views.dashboard = (function () {
       dueN: dueN, newN: newN, target: T };
   }
 
-  /* Names a partial read. Does not touch the daily batch. */
-  function deckRecoveryNote(status) {
-    if (!status || !status.partial) return '';
-    var missing = [];
-    var raw = status.missing || [];
-    for (var i = 0; i < raw.length; i++) {
-      if (raw[i]) missing.push(String(raw[i]));
-    }
-    var note = 'The deck read is incomplete';
-    if (missing.length) note += ' (' + missing.join(', ') + ')';
-    return note + ', so this count can be low.';
-  }
-
-  /* Read-only. Does not call suggestFormulaDay or autoFillFormulaDay, and
-     does not add or remove daily ids. A partial read warns even when every
-     loaded card has already been introduced. */
-  function formulaReadinessLine(deck, status) {
-    var srs = PGRE.srs;
-    if (!srs) return '';
-    var note = deckRecoveryNote(status);
-    var unseen = 0;
-    if (deck && deck.length) {
-      deck.forEach(function (c) {
-        if (c && !srs.cardState(c.id) && !srs.isSuspended(c.id)) unseen++;
-      });
-    }
-    if (!unseen) return note;
-    var settings = PGRE.store.state.settings || {};
-    var target = srs.clampTarget(settings.formulaDailyTarget);
-    var postponed = typeof srs.formulaDayPostponed === 'function' ? srs.formulaDayPostponed(deck) : 0;
-    // Pieces are joined with ' · ' so the mount can drop the leading count
-    // when the tile's status line already shows the same words.
-    // Life Studio: the exam is sat — the countdown wording lives on the
-    // Study plan page now, not on the dashboard (D1, PR 126).
-    var line = unseen + ' not yet introduced · ' +
-      target + ' a day · ' +
-      postponed + ' due review' + (postponed === 1 ? '' : 's') + ' waiting. ' +
-      'To cover more, add cards in Recall.';
-    if (note) line += ' ' + note;
-    return line;
-  }
-
   function startFormulaFromToday(ev) {
     if (ev && ev.preventDefault) ev.preventDefault();
     var todayBtn = document.getElementById('today-formulas-btn');
@@ -1087,133 +972,232 @@ PGRE.views.dashboard = (function () {
     });
   }
 
+  /* ——— Round-2 Today (design §6.2): notice, review card (async), streak and
+     time tiles, subject tiles, recent activity. The physics tools (practice,
+     mistake book, mocks, plan, QOTD, challenges) moved to the Physics home. ——— */
+
+  /* "Got it" on the moved notice stores one entry in state.migrations (an
+     existing key — D6 caps the new saved keys at reviewMonths). */
+  var MOVED_FLAG = 'layoutR2Notice';
+  function bannerHTML() {
+    var s = PGRE.store.state;
+    var fresh = !(s.attempts && s.attempts.length) &&
+                !(s.cardReviews && s.cardReviews.length) &&
+                !(s.xp || 0);
+    if (fresh) {
+      return '<div class="ls-notice warn"><b>This address has no saved progress.</b> ' +
+        'The studio keeps progress separately for each address: a <code>file://</code> page, ' +
+        '<code>localhost</code> and <code>127.0.0.1</code> each have their own. If you have ' +
+        'studied before, open the address you used then, or restore an export.' +
+        '<div class="btn-row" style="margin-top:10px"><a class="btn btn-ghost btn-sm" href="#/settings">Settings › Data</a></div></div>';
+    }
+    if (!(s.migrations && s.migrations[MOVED_FLAG])) {
+      return '<div class="ls-notice"><b>The studio has a new layout.</b> Physics practice, ' +
+        'the mistake book, mock exams and the study plan are now under <b>Physics</b> in ' +
+        'the sidebar. Today shows your card review for every subject.' +
+        '<div class="btn-row" style="margin-top:10px"><a class="btn btn-ghost btn-sm" href="#/subject/physics">Open Physics</a>' +
+        '<button class="btn btn-ghost btn-sm" id="notice-gotit">Got it</button></div></div>';
+    }
+    return '';
+  }
+
+  /* The shared due/state picture. All subjects always count — the Review
+     tab's subject filter never narrows Today (design §6.2). */
+  function todayReviewState(deck) {
+    var srs = PGRE.srs, s = PGRE.store.state;
+    var mem = PGRE.subjectMemory(deck);
+    var T = srs.clampTarget(s.settings.formulaDailyTarget);
+    var newCap = srs.clampTarget(s.settings.newCardsPerDay);
+    var newUsed = srs.newCardsCommittedToday ? srs.newCardsCommittedToday() : 0;
+    var saved = s.formulaStudy;
+    var resume = (saved && saved.date === srs.today() &&
+      Array.isArray(saved.queueIds) && saved.queueIds.length)
+      ? { left: saved.queueIds.length, adhoc: saved.dayBound === false } : null;
+    var remaining = srs.formulaDayRemaining(deck).length;
+    var done = 0;
+    for (var id in s.cards) {
+      if (srs.studiedToday(s.cards[id])) done++;
+    }
+    var dueRows = [];
+    PGRE.SUBJECTS.forEach(function (sub) {
+      var e = mem.byId[sub.id];
+      if (e && e.due) dueRows.push({ subject: sub, due: e.due });
+    });
+    return { mem: mem, T: T, newCap: newCap, newUsed: newUsed, resume: resume,
+             remaining: remaining, done: done, dueRows: dueRows };
+  }
+
+  function reviewCardHTML(t, deck) {
+    var ui = PGRE.ui, mem = t.mem, tot = mem.total;
+
+    if (!deck.length) {
+      return '<div class="card review-card empty-state"><span class="kicker">Review · all subjects</span>' +
+        '<div class="serif" style="font-size:28px;margin-top:8px">No cards yet</div>' +
+        '<p class="muted" style="margin:8px auto 0;max-width:54ch">Write a card in the ' +
+        'editor, or ask firstmate in chat to add cards for a subject. New cards join ' +
+        'the daily review, up to ' + t.newCap + ' new cards a day across all subjects.</p>' +
+        '<div class="btn-row" style="justify-content:center">' +
+        '<button class="btn btn-primary" id="today-add-card">Add the first card</button></div></div>';
+    }
+
+    var num, line, primary;
+    var choose = '<button class="btn btn-ghost" id="today-choose">Choose cards</button>';
+    var batch = Math.min(t.T, tot.due || t.remaining);
+    if (t.resume) {
+      num = t.resume.left + '<small>left</small>';
+      line = t.resume.adhoc
+        ? 'A separate study session is in progress. It stays until you resume it or replace it on Recall › Review.'
+        : 'Today’s session is in progress.';
+      primary = '<button class="btn btn-primary" id="today-study">Resume: ' +
+        t.resume.left + ' left</button>';
+    } else if (tot.due) {
+      num = tot.due + '<small>' + (t.done ? 'still due' : 'due') + '</small>';
+      var newPhrase = tot.due >= t.T
+        ? 'New cards wait until the due reviews are done.'
+        : 'New cards: ' + t.newUsed + ' of ' + t.newCap +
+          ' used' + (t.done ? ' today' : ' today; they come after the due reviews.');
+      line = (t.done ? t.done + ' reviewed today. ' : '') +
+        (tot.oldestOverdue
+          ? 'Oldest overdue: ' + tot.oldestOverdue + ' day' +
+            (tot.oldestOverdue === 1 ? '' : 's') + '. ' : '') +
+        newPhrase;
+      primary = '<button class="btn btn-primary" id="today-study">' +
+        (t.done ? 'Next ' : 'Start: ') + Math.min(t.T, tot.due) + ' cards</button>';
+    } else if (t.remaining) {
+      num = t.remaining + '<small>left</small>';
+      line = t.done + ' reviewed today. ' + t.remaining +
+        ' card' + (t.remaining === 1 ? '' : 's') + ' left in today’s list.';
+      primary = '<button class="btn btn-primary" id="today-study">Study ' +
+        t.remaining + ' card' + (t.remaining === 1 ? '' : 's') + '</button>';
+    } else {
+      var room = Math.max(0, t.newCap - t.newUsed);
+      var n = Math.min(room, tot.fresh);
+      num = '0<small>due</small>';
+      line = (t.done ? 'All ' + t.done + ' due reviews are done. ' : 'All due reviews are done. ') +
+        (tot.dueTomorrow
+          ? 'Next due: ' + tot.dueTomorrow + ' card' + (tot.dueTomorrow === 1 ? '' : 's') +
+            ' tomorrow. ' : '') +
+        'New cards today: ' + t.newUsed + ' of ' + t.newCap + ' used; ' +
+        tot.fresh + ' are waiting.';
+      primary = n
+        ? '<button class="btn btn-primary" id="today-study">Learn ' + n +
+          ' new card' + (n === 1 ? '' : 's') + '</button>'
+        : '';
+    }
+    var prog = t.done && tot.due
+      ? '<div class="bar" style="margin-top:12px" title="' + t.done + ' of ' +
+        (t.done + tot.due) + ' done"><span style="width:' +
+        Math.round(100 * t.done / (t.done + tot.due)) + '%"></span></div>'
+      : '';
+    var max = 1;
+    t.dueRows.forEach(function (r) { if (r.due > max) max = r.due; });
+    var srows = t.dueRows.length
+      ? '<div class="srows">' + t.dueRows.map(function (r) {
+          return '<div class="srow" data-rsubj="' + ui.esc(r.subject.id) + '" role="button" tabindex="0" title="Study ' +
+            ui.esc(r.subject.name) + ' only"><span class="mono-chip">' + ui.esc(r.subject.code) +
+            '</span><span class="nm">' + ui.esc(r.subject.name) + '</span>' +
+            '<div class="bar"><span style="width:' +
+            Math.max(2, Math.round(100 * r.due / max)) + '%"></span></div>' +
+            '<span class="ct">' + r.due + ' due</span></div>';
+        }).join('') + '</div>'
+      : '';
+    return '<div class="card review-card">' +
+      '<div class="rc-head"><div><span class="kicker">Review · all subjects</span>' +
+      '<div class="rc-num">' + num + '</div></div>' +
+      '<div class="rc-actions">' + primary + choose + '</div></div>' +
+      '<p class="muted" style="margin-top:10px">' + line + '</p>' + prog + srows +
+      '<p class="meta" style="margin-top:10px">Cards come in batches of ' + t.T +
+      ', most overdue first. Stop after any batch; what is left stays due.</p></div>';
+  }
+
+  /* One subject tile: due at 28 px, card and fresh counts, held + retention,
+     and on Physics the one-line mistake-book count (D3). */
+  function subjectTileHTML(sub, mem, dueM) {
+    var ui = PGRE.ui;
+    var e = mem.byId[sub.id];
+    var head = '<div class="subj-head"><span class="mono-chip">' + ui.esc(sub.code) +
+      '</span><span class="subj-name">' + ui.esc(sub.name) + '</span></div>';
+    if (!e || !e.cards) {
+      return '<div class="tile subj-tile empty" data-sgoto="' + ui.esc(sub.id) + '">' + head +
+        '<div class="subj-due">No cards yet</div>' +
+        '<div class="btn-row" style="margin-top:6px"><button class="btn btn-ghost btn-sm" data-add-card="' +
+        ui.esc(sub.id) + '">Add the first card</button></div></div>';
+    }
+    var ret = e.acc30 == null ? 'collecting' : e.acc30 + '% 30-day';
+    return '<div class="tile subj-tile" data-sgoto="' + ui.esc(sub.id) + '" role="button" tabindex="0">' +
+      head +
+      '<div class="subj-due">' + e.due + '<small>due today</small></div>' +
+      '<div class="meta">' + ui.fmt(e.cards) + ' cards · ' + ui.fmt(e.fresh) + ' never studied</div>' +
+      '<div class="meta">' + ui.fmt(e.held) + ' held 3 weeks or more · ' + ret + '</div>' +
+      (sub.id === 'physics'
+        ? '<div class="meta" style="margin-top:4px"><a href="#/mistakes">Mistake book: ' +
+          dueM + ' due</a></div>'
+        : '') + '</div>';
+  }
+
   function render() {
     var ui = PGRE.ui, g = PGRE.gamify, s = PGRE.store.state;
     var lvl = g.levelInfo(s.xp);
 
-    var m = g.metrics();
-    var accuracy = '—';
-    var totalAttempts = 0, totalCorrect = 0;
-    for (var id in s.questions) { totalAttempts += s.questions[id].attempts; totalCorrect += s.questions[id].correct; }
-    if (totalAttempts > 0) accuracy = Math.round(100 * totalCorrect / totalAttempts) + '%';
+    var html = (PGRE.sessionPark ? PGRE.sessionPark.reminderHTML() : '') + bannerHTML();
 
-    var html = (PGRE.sessionPark ? PGRE.sessionPark.reminderHTML() : '') + todayAgendaHTML();
+    // Header: date kicker, title, the due/streak lead (deck arrives async),
+    // + Add card on the right.
+    var dateLine = new Date().toLocaleDateString('en-US', {
+      weekday: 'long', month: 'long', day: 'numeric'
+    });
+    var streak = PGRE.store.liveStreak ? PGRE.store.liveStreak() : 0;
+    html += '<div class="hdr-row" style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap">' +
+      '<div><span class="kicker">' + ui.esc(dateLine) + '</span>' +
+      '<div class="h1">Today</div>' +
+      '<p class="lead" id="today-lead">' +
+        (streak ? streak + '-day streak' : 'The streak starts with the first review') +
+        '</p></div>' +
+      '<button class="btn btn-ghost" id="today-add-card">+ Add card</button></div>' +
+      '<div style="height:18px"></div>';
 
-    html += (PGRE.views.studytime && PGRE.views.studytime.activityTargetHTML)
-      ? PGRE.views.studytime.activityTargetHTML()
-      : '';
+    html += '<div id="today-review-slot">' +
+      '<div class="card practice-card fcard-skeleton">' +
+      '<div class="skel-bar" style="width:35%"></div>' +
+      '<div class="skel-bar" style="width:82%"></div>' +
+      '<div class="skel-bar" style="width:64%"></div></div></div>';
 
-    html += intensityCardHTML();
-
-    var cw = PGRE.currentWeek();
-    var weekTasks = PGRE.weekTasks(cw.week);
-    var doneCount = weekTasks.filter(function (t) { return g.taskDone(t.id); }).length;
-    var nextTasks = weekTasks.filter(function (t) { return !g.taskDone(t.id); }).slice(0, 3);
-    var firstLaunch = weekTasks.filter(function (t) {
-      return (t.kind === 'timed' || t.kind === 'extra-set') && !g.taskDone(t.id);
-    })[0];
-    html += '<div class="card dash-week">' +
-      '<div class="band-head"><div class="band-head-copy">' +
-        '<p class="kicker">This week · ' + ui.dateRange(cw.week.start, cw.week.end) + ' · ~' + cw.week.hours + ' h</p>' +
-        '<h2>' + ui.esc(cw.week.title) + '</h2></div>' +
-        '<a class="btn btn-ghost btn-sm band-head-link" href="#/plan">Study plan →</a></div>' +
-      ui.meter(100 * doneCount / Math.max(1, weekTasks.length), 'meter-thin', {
-        word: 'complete', meta: doneCount + ' of ' + weekTasks.length + ' tasks'
-      });
-    if (nextTasks.length) {
-      html += '<ul class="next-tasks">';
-      nextTasks.forEach(function (t) {
-        var launch = (firstLaunch && t.id === firstLaunch.id)
-          ? ' <button class="btn btn-primary btn-sm" data-launch-set="' +
-              ui.esc(String(t.id || '').replace(/^set-/, '')) + '">Start →</button>'
-          : '';
-        // "Set 11 · Induction … (n=8) — ~100 min": the time estimate becomes
-        // its own quiet column so the task names line up.
-        var label = String(t.label || '');
-        var mins = label.match(/\s+—\s+(~?\d+\s*min)$/);
-        if (mins) label = label.slice(0, mins.index);
-        html += '<li><span class="next-task-label">' + ui.esc(label) + '</span>' +
-          (mins ? '<span class="next-task-time">' + ui.esc(mins[1]) + '</span>' : '') + launch + '</li>';
-      });
-      html += '</ul>';
-    } else {
-      html += '<p class="muted">Everything for this week is done. Get ahead or rest — both count.</p>';
+    // Streak + Time today tiles.
+    var goal = (s.settings && s.settings.dailyTargetMin) || 0;
+    var todayMin = Math.round((PGRE.studyTime && PGRE.studyTime.liveTodaySec
+      ? PGRE.studyTime.liveTodaySec() : 0) / 60);
+    var weekMin = 0;
+    if (PGRE.studyTime && PGRE.studyTime.daySec) {
+      for (var wi = 0; wi < 7; wi++) {
+        var dk = PGRE.srs.addDays(-wi);
+        weekMin += PGRE.studyTime.daySec(dk) / 60;
+      }
     }
-    html += '</div>';
-
-    var progressOpen = !!(s.settings && s.settings.dashboardProgressOpen);
-    var liveStreak = PGRE.store.liveStreak();
-    html += '<details class="card dashboard-progress"' + (progressOpen ? ' open' : '') + '>' +
-      '<summary><span>Progress</span><span class="prog-sum-stats">' +
-        'Level ' + lvl.level + ' · ' + liveStreak + '-day streak · ' + accuracy +
-        (accuracy === '—' ? ' accuracy' : ' correct') + '</span></summary>';
-
-    html += '<div class="hero">' +
-      '<div class="hero-left">' +
-        '<div class="hero-level">Level <span class="hero-level-num">' + lvl.level + '</span> · <span class="level-title">' + lvl.title + '</span></div>' +
-        ui.meter(lvl.pct, 'meter-xp', {
-          word: 'to next level', meta: ui.fmt(lvl.into) + ' / ' + ui.fmt(lvl.span) + ' XP'
-        }) +
-        '<div class="hero-xp-note">' + ui.fmt(lvl.into) + ' / ' + ui.fmt(lvl.span) + ' XP to Level ' + (lvl.level + 1) + '</div>' +
-      '</div>' +
+    html += '<div class="ls-grid2">' +
+      '<div class="tile"><span class="kicker">Streak</span>' +
+        '<div class="big">' + streak + '<small>days · best ' + s.streak.best + '</small></div>' +
+        '<div class="muted">Level ' + lvl.level + ' · ' + ui.esc(lvl.title) + '</div>' +
+        ui.meter(lvl.pct, 'meter-xp') +
+        '<div class="meta">' + ui.fmt(lvl.into) + ' of ' + ui.fmt(lvl.span) +
+          ' XP to level ' + (lvl.level + 1) + ' · <a href="#/achievements">Achievements</a></div></div>' +
+      '<div class="tile"><span class="kicker">Time today</span>' +
+        '<div class="big">' + todayMin + '<small>' +
+          (goal ? 'of ' + goal + ' min goal' : 'min today') + '</small></div>' +
+        (goal ? ui.meter(Math.min(100, Math.round(100 * todayMin / goal)), 'meter-thin') : '') +
+        '<div class="meta">This week ' + (Math.round(weekMin / 60 * 10) / 10) +
+          ' h · <a href="#/study-time">Study time</a></div>' +
+        '<div class="btn-row" style="margin-top:6px"><a class="btn btn-ghost btn-sm" href="#/focus">Start focus</a></div></div>' +
     '</div>';
 
-    html += '<div class="stat-row">' +
-      ui.statTile('Total XP', ui.fmt(s.xp)) +
-      ui.statTile('Day streak', PGRE.store.liveStreak(), 'best ' + s.streak.best) +
-      ui.statTile('Questions answered', ui.fmt(m.answered)) +
-      ui.statTile('Accuracy', accuracy) +
-      ui.statTile('Days active', s.daysActive.length) +
-    '</div>';
-
-    html += '<div class="card"><h2>Today’s challenges</h2><div class="challenge-list">';
-    g.todaysChallenges().forEach(function (c) {
-      var nav = CHALLENGE_NAV[c.id];
-      var jump = (!c.done && nav)
-        ? '<a class="btn btn-ghost btn-sm" href="' + nav.href + '">' + nav.label + ' →</a>'
-        : '';
-      html += '<div class="challenge' + (c.done ? ' done' : '') + '">' +
-        '<div class="challenge-top"><span>' + (c.done ? '<span class="check">✓</span> ' : '') + ui.esc(c.label) + '</span>' +
-        '<span class="challenge-xp">+' + c.xp + ' XP</span></div>' +
-        ui.meter(100 * c.cur / c.max, 'meter-thin') +
-        '<div class="challenge-foot">' +
-          '<span class="challenge-prog">' + c.cur + ' / ' + c.max + '</span>' + jump +
-        '</div>' +
-      '</div>';
-    });
-    html += '</div></div>';
-
-    html += qotdCard();
-    html += readinessCard();
-
-    var tiers = ['bronze', 'silver', 'gold', 'platinum'];
-    var tierCounts = {};
-    tiers.forEach(function (tier) {
-      var total = PGRE.ACHIEVEMENTS.filter(function (a) { return a.tier === tier; }).length;
-      var got = PGRE.ACHIEVEMENTS.filter(function (a) { return a.tier === tier && s.achievements[a.id]; }).length;
-      tierCounts[tier] = got + '/' + total;
-    });
-    html += '<div class="card"><h2>Achievements</h2><div class="tier-chips">';
-    tiers.forEach(function (tier) {
-      html += '<span class="tier-chip tier-' + tier + '">' + tier.charAt(0).toUpperCase() + tier.slice(1) + ' ' + tierCounts[tier] + '</span>';
-    });
-    html += '</div>';
-    var recent = PGRE.ACHIEVEMENTS
-      .filter(function (a) { return s.achievements[a.id]; })
-      .sort(function (a, b) { return s.achievements[b.id] < s.achievements[a.id] ? -1 : 1; })
-      .slice(0, 3);
-    if (recent.length) {
-      html += '<ul class="mini-list">';
-      recent.forEach(function (a) {
-        html += '<li><span class="tier-dot tier-' + a.tier + '"></span>' + a.name +
-          '<span class="muted"> · ' + PGRE.ui.timeAgo(s.achievements[a.id]) + '</span></li>';
-      });
-      html += '</ul>';
-    } else {
-      html += '<p class="muted">Nothing unlocked yet — answer your first question to get started.</p>';
-    }
-    html += '<a class="btn btn-ghost" href="#/achievements">All achievements →</a></div>';
-    html += '</details>';
+    html += '<div class="sec-title"><span class="t">Subjects</span>' +
+      '<span class="meta">Retention: share of real reviews in the last 30 days not ' +
+      'graded Again; shown after enough reviews</span></div>' +
+      '<div class="ls-grid3" id="today-subjects">' +
+      PGRE.SUBJECTS.map(function (sub) {
+        return '<div class="tile subj-tile empty"><div class="subj-head"><span class="mono-chip">' +
+          ui.esc(sub.code) + '</span><span class="subj-name">' + ui.esc(sub.name) + '</span></div>' +
+          '<div class="subj-due">…</div></div>';
+      }).join('') + '</div>';
 
     html += '<div class="card dash-activity"><h2>Recent activity</h2>';
     if (s.log.length === 0) {
@@ -1228,22 +1212,6 @@ PGRE.views.dashboard = (function () {
       });
       html += '</ul>';
     }
-    html += '</div>';
-
-    html += '<div class="band-head section-head"><h2 class="section-title">Knowledge portals</h2>' +
-      '<span class="band-head-note">Exam weight · mastery</span></div><div class="topic-grid">';
-    PGRE.TOPICS.forEach(function (t) {
-      var rec = s.topics[t.id] || { attempted: 0, correct: 0 };
-      var acc = rec.attempted ? Math.round(100 * rec.correct / rec.attempted) + '% correct' : 'not started';
-      var mastery = g.mastery(t.id);
-      html += '<a class="topic-card card" href="#/topic/' + t.id + '">' +
-        '<div class="topic-card-head">' + ui.monogram(t) +
-          '<span class="weight-chip">' + t.weight + '%</span></div>' +
-        '<div class="topic-card-name">' + t.name + '</div>' +
-        ui.meter(mastery, 'meter-thin') +
-        '<div class="topic-card-sub">' + mastery + '% mastery · ' + acc + '</div>' +
-      '</a>';
-    });
     html += '</div>';
 
     return html;
@@ -1313,41 +1281,30 @@ PGRE.views.dashboard = (function () {
   function mount() {
     if (!keyBound) { document.addEventListener('keydown', onKey); keyBound = true; }
     if (PGRE.sessionPark) PGRE.sessionPark.wireDashboard();
-    // Same Daily activity target card as #/study-time, including its chips
-    // and focus button. studytime.mount no-ops when that card is absent.
-    if (PGRE.views.studytime && PGRE.views.studytime.mount) PGRE.views.studytime.mount();
-    // Intensity: open/shut readings, in-place refresh, meters, landing from a link
-    bindIntensity();
-    intensitySettle(intensityLast);
-    landOnRequestedCard();
-    // #7 QOTD: typeset the math and wire up the one-tap choices
-    bindQotd();
-    // Views-A: entry motion — numbers count up, meters fill, challenges cascade
+
+    var gi = document.getElementById('notice-gotit');
+    if (gi) gi.addEventListener('click', function () {
+      var s = PGRE.store.state;
+      if (!s.migrations || typeof s.migrations !== 'object') s.migrations = {};
+      s.migrations[MOVED_FLAG] = new Date().toISOString();
+      PGRE.store.save();
+      var n = gi.closest('.ls-notice');
+      if (n) n.parentNode.removeChild(n);
+    });
+
+    // Views-A: entry motion — numbers count up, meters fill, cards cascade.
     if (PGRE.motion && !PGRE.motion.reduced) {
-      countUpText(document.querySelector('.hero-level-num'), 700);
-      countUpText(document.querySelector('.hero-xp-note'), 700);
-      // exam-countdown tween guard removed with the countdown (Life Studio)
-      document.querySelectorAll('.stat-tile .stat-value').forEach(function (el) {
-        countUpText(el, 700);
-      });
-      document.querySelectorAll('.challenge-list .challenge-prog').forEach(function (el) {
+      document.querySelectorAll('#view .big').forEach(function (el) {
         countUpText(el, 700);
       });
       animateMeters(document.getElementById('view'));
-      var challengeList = document.querySelector('.challenge-list');
-      if (challengeList) {
-        Array.prototype.forEach.call(challengeList.children, function (c) {
-          c.classList.add('stagger-in');
-        });
-        PGRE.motion.stagger(challengeList, { step: 60, max: 6 });
-      }
       var view = document.getElementById('view');
       if (view) {
         var cascade = 0;
         Array.prototype.forEach.call(view.children, function (el) {
-          if (el.classList.contains('card') || el.classList.contains('stat-row') ||
-              el.classList.contains('two-col') ||
-              el.classList.contains('review-queue')) {
+          if (el.classList.contains('card') || el.classList.contains('ls-grid2') ||
+              el.classList.contains('ls-grid3') ||
+              el.classList.contains('ls-notice')) {
             el.classList.add('stagger-in');
             el.style.animationDelay = (cascade * 70) + 'ms';
             cascade += 1;
@@ -1355,62 +1312,168 @@ PGRE.views.dashboard = (function () {
         });
       }
     }
-    var prog = document.querySelector('#view details.dashboard-progress');
-    if (prog) {
-      prog.addEventListener('toggle', function () {
-        var settings = PGRE.store.state.settings;
-        if (!settings) return;
-        settings.dashboardProgressOpen = !!prog.open;
-        PGRE.store.save();
-      });
-    }
 
-
-    var tfBtn = document.getElementById('today-formulas-btn');
-    document.querySelectorAll('#view [data-launch-set]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        if (PGRE.launchPack(btn.getAttribute('data-launch-set')) == null) {
-          PGRE.toast('That set is not available.');
-        }
-      });
-    });
-    if (tfBtn) tfBtn.addEventListener('click', startFormulaFromToday);
-
-    // formula due count arrives async from the IndexedDB-backed deck
+    // The async half: deck → review card, subject tiles and the lead line.
     PGRE.formulaDeck().then(function (deck) {
-      var deckStatus = PGRE.formulaDeckStatus || null;
-      var st = formulaStatus(deck);
-      var todayEl = document.getElementById('today-formulas');
-      var readyEl = document.getElementById('formula-readiness');
-      if (readyEl) {
-        var readyLine = formulaReadinessLine(deck, deckStatus);
-        if (readyLine.indexOf(st.text + ' · ') === 0) readyLine = readyLine.slice(st.text.length + 3);
-        if (readyLine) {
-          readyEl.hidden = false;
-          readyEl.textContent = readyLine + ' ';
-          var link = document.createElement('a');
-          link.href = '#/formulas';
-          link.textContent = 'Open Recall';
-          readyEl.appendChild(link);
+      var slot = document.getElementById('today-review-slot');
+      if (!slot) return;                       // the route already changed
+      var t = todayReviewState(deck);
+      var dueM = PGRE.srs.dueMistakes().length;
+
+      // Lead: "N cards due in M subjects · X-day streak".
+      var streak = PGRE.store.liveStreak ? PGRE.store.liveStreak() : 0;
+      var lead = document.getElementById('today-lead');
+      if (lead) {
+        var parts = [];
+        if (!deck.length) parts.push('Nothing is saved at this address yet');
+        else if (t.mem.total.due) {
+          parts.push(plural(t.mem.total.due, 'card') + ' due in ' +
+            plural(Math.max(1, t.dueRows.length), 'subject'));
+        } else parts.push('Nothing due');
+        if (streak) parts.push(streak + '-day streak');
+        lead.textContent = parts.join(' · ');
+      }
+
+      slot.innerHTML = reviewCardHTML(t, deck);
+
+      var tiles = document.getElementById('today-subjects');
+      if (tiles) {
+        tiles.innerHTML = PGRE.SUBJECTS.map(function (sub) {
+          return subjectTileHTML(sub, t.mem, dueM);
+        }).join('');
+      }
+
+      // Controls (spec §6.2): Start/Learn fills and opens the session;
+      // Choose cards opens the Recall picker; a subject row opens Recall
+      // narrowed to that subject; tiles open the subject home.
+      var stb = document.getElementById('today-study');
+      if (stb) stb.addEventListener('click', startFormulaFromToday);
+      var chb = document.getElementById('today-choose');
+      if (chb) chb.addEventListener('click', function () {
+        if (PGRE.views.formulas && PGRE.views.formulas.armPicker) {
+          PGRE.views.formulas.armPicker();
         }
-      }
-      if (todayEl) todayEl.textContent = st.text;
-      if (tfBtn && !tfBtn.disabled) {
-        if (st.remaining || (st.fill && st.dueN)) {
-          tfBtn.classList.remove('btn-ghost');
-          tfBtn.classList.add('btn-primary');
+        location.hash = '#/formulas';
+      });
+      slot.querySelectorAll('.srow').forEach(function (row) {
+        function go() {
+          var sid = row.getAttribute('data-rsubj');
+          PGRE.store.state.settings.recallSubject = sid;
+          PGRE.store.save();
+          location.hash = '#/formulas';
         }
-        if (st.remaining) tfBtn.textContent = 'Study →';
-        else if (st.fill && !st.newN) tfBtn.textContent = 'Study ' + st.dueN + ' due →';
-        else if (st.fill) tfBtn.textContent = 'Study ' + (st.dueN + st.newN) + ' →';
-        else tfBtn.textContent = 'Open →';
+        row.addEventListener('click', go);
+        row.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
+        });
+      });
+      document.querySelectorAll('#today-subjects [data-sgoto]').forEach(function (tile) {
+        tile.addEventListener('click', function (e) {
+          if (e.target.closest('a,button')) return;
+          location.hash = '#/subject/' + tile.getAttribute('data-sgoto');
+        });
+      });
+      document.querySelectorAll('#today-subjects [data-add-card]').forEach(function (b) {
+        b.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (PGRE.views.formulas && PGRE.views.formulas.armEditor) {
+            PGRE.views.formulas.armEditor({ subject: b.getAttribute('data-add-card') });
+          }
+          location.hash = '#/formulas/cards';
+        });
+      });
+      if (PGRE.refreshNavBadges) PGRE.refreshNavBadges();
+      if (PGRE.motion && !PGRE.motion.reduced) {
+        countUpText(slot.querySelector('.rc-num'), 600);
       }
-      // remaining counts may tween; do not tween "N not yet introduced"
-      if (PGRE.motion && !PGRE.motion.reduced && st.remaining) {
-        if (todayEl) countUpText(todayEl, 600);
-      }
+    });
+
+    // "+ Add card" opens the editor on a new card, subject preset to the
+    // newest of the captain's cards (spec §6.2 controls).
+    document.querySelectorAll('#view #today-add-card').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var subj = 'physics';
+        var mine = PGRE.userCardDeck ? PGRE.userCardDeck() : [];
+        if (mine.length && mine[0].subject) subj = mine[0].subject;
+        if (PGRE.views.formulas && PGRE.views.formulas.armEditor) {
+          PGRE.views.formulas.armEditor({ subject: subj });
+        }
+        location.hash = '#/formulas/cards';
+      });
     });
   }
 
-  return { render: render, mount: mount };
+  /* ——— Physics-home building blocks (moved here per design §6.4): the
+     challenge list, the question of the day and the topic strip render on
+     the subject page through these exports; wiring reuses this file's
+     handlers. ——— */
+  function challengesHTML() {
+    var ui = PGRE.ui, g = PGRE.gamify;
+    var html = '<div class="challenge-list">';
+    g.todaysChallenges().forEach(function (c) {
+      var nav = CHALLENGE_NAV[c.id];
+      var jump = (!c.done && nav)
+        ? '<a class="btn btn-ghost btn-sm" href="' + nav.href + '">' + nav.label + ' →</a>'
+        : '';
+      html += '<div class="challenge' + (c.done ? ' done' : '') + '">' +
+        '<div class="challenge-top"><span>' + (c.done ? '<span class="check">✓</span> ' : '') + ui.esc(c.label) + '</span>' +
+        '<span class="challenge-xp">+' + c.xp + ' XP</span></div>' +
+        ui.meter(100 * c.cur / c.max, 'meter-thin') +
+        '<div class="challenge-foot">' +
+          '<span class="challenge-prog">' + c.cur + ' / ' + c.max + '</span>' + jump +
+        '</div>' +
+      '</div>';
+    });
+    return html + '</div>';
+  }
+
+  function wireChallenges(host) {
+    if (!host || !(PGRE.motion && !PGRE.motion.reduced)) return;
+    host.querySelectorAll('.challenge-prog').forEach(function (el) {
+      countUpText(el, 700);
+    });
+    animateMeters(host);
+  }
+
+  /* The nine topic tiles: code, cards and cards due today, no exam weight
+     (design §6.4). Counts are recall cards of this physics topic. */
+  function topicsStripHTML(deck) {
+    var ui = PGRE.ui;
+    var counts = {};
+    PGRE.TOPICS.forEach(function (t) { counts[t.id] = { cards: 0, due: 0 }; });
+    (deck || []).forEach(function (c) {
+      if (PGRE.cardSubject(c) !== 'physics' || !counts[c.topic]) return;
+      counts[c.topic].cards++;
+      var st = PGRE.srs.cardState(c.id);
+      if (st && !PGRE.srs.isSuspended(c.id) && !PGRE.srs.studiedToday(st) &&
+          PGRE.srs.daysUntil(st.due) <= 0) counts[c.topic].due++;
+    });
+    return '<div class="card"><div class="sec-title"><span class="t">Topics</span></div>' +
+      '<div class="meta">The nine topic pages, without exam weights. Cards and cards due today.</div>' +
+      '<div class="topic-strip">' +
+      PGRE.TOPICS.map(function (t) {
+        var k = counts[t.id];
+        return '<a href="#/topic/' + t.id + '" title="' + ui.esc(t.name) + '">' +
+          ui.esc(t.short) + '<b>' + ui.fmt(k.cards) + '</b>' + k.due + ' due</a>';
+      }).join('') + '</div></div>';
+  }
+
+  return {
+    render: render,
+    mount: mount,
+    challengesHTML: challengesHTML,
+    wireChallenges: wireChallenges,
+    qotdCard: qotdCard,
+    bindQotd: bindQotd,
+    topicsStripHTML: topicsStripHTML,
+    /* Exam archive (plan page) pieces moved off Today: readiness card, the
+       folded intensity card and its wiring. */
+    readinessCard: readinessCard,
+    intensityCardHTML: intensityCardHTML,
+    mountIntensity: function () {
+      bindIntensity();
+      intensitySettle(intensityLast);
+      landOnRequestedCard();
+    }
+  };
 })();
