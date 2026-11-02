@@ -203,20 +203,21 @@ async function main() {
           await waitFor('document.readyState === "complete"', 30);
           await ev('localStorage.clear(); sessionStorage.clear(); localStorage.setItem("pgre-state-v1", ' +
             JSON.stringify(JSON.stringify(seed(THEMES[ti]))) + '); true');
+          var pages = (process.env.PAGES || 'today,studytime,settings').split(',');
           await go(base + '/#/');
           await waitReady(state);
-          await shot('today-' + tag + '.png');
+          if (pages.indexOf('today') >= 0) await shot('today-' + tag + '.png');
           await go(base + '/#/study-time');
           await waitFor('!!document.querySelector("#st-daily-slot .stbar-strip")', 80);
           await sleep(600);
-          await shot('studytime-' + tag + '.png');
+          if (pages.indexOf('studytime') >= 0) await shot('studytime-' + tag + '.png');
           await go(base + '/#/settings');
           await waitFor('!!document.getElementById("set-other-apps")', 60);
           await waitFor(state === 'off'
             ? '/Not connected/.test(document.getElementById("set-other-apps").innerText)'
             : '/update|Connected/.test(document.getElementById("set-other-apps").innerText)', 60);
           await sleep(400);
-          await shot('settings-' + tag + '.png');
+          if (pages.indexOf('settings') >= 0) await shot('settings-' + tag + '.png');
         }
       }
     }

@@ -283,8 +283,8 @@ async function main() {
       'function(e){return e.getAttribute("data-tip")||"";});' +
       'return {n:n, nums:nums, mmTips:tips.filter(function(t){return /Maimemo/.test(t);}).length};})()');
     check(bars.n >= 3, 'Maimemo segment painted on the days that have it');
-    check(bars.nums.length >= 3 && /\+/.test(bars.nums[0]),
-      '"studio + Maimemo" minutes in text under the bars');
+    check(bars.nums.length === 1 && /\+/.test(bars.nums[0]),
+      '"studio + Maimemo" minutes printed only under today\'s bar');
     check(bars.mmTips >= 3, 'day tooltips carry both numbers');
     var cal = await ev('(function(){var cells=document.querySelectorAll("#st-cal-slot .hm-cal i");' +
       'var mmCells=0,dayCells=0;cells.forEach(function(c){' +

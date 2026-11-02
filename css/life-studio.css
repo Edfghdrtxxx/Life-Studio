@@ -561,6 +561,3 @@ a.subj-tile { display: block; text-decoration: none; color: inherit; }
 .stbar-key i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -2px; }
 .stbar-key i.st { background: var(--ink-2); }
 .stbar-key i.mm { background: var(--surface); box-shadow: inset 0 0 0 2px var(--ink-2); }
-@media (max-width: 700px) {
-  .stbar-mm-n { display: none; }
-}

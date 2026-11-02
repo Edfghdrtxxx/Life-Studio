@@ -317,8 +317,9 @@ PGRE.views.studytime = (function () {
   /* ——— Last-28-days daily bar chart (pure-div bars; forecastHTML pattern).
      Studio minutes come from state.studyLog; Maimemo minutes stack on top
      (js/study-sources.js, `mmByDay` = day-key -> seconds, {} when the bridge
-     has not answered). Both numbers are written in each day's tooltip and
-     under the bar when Maimemo studied (hidden on narrow windows). ——— */
+     has not answered). Every day's tooltip carries both numbers; the printed
+     "studio +Maimemo" pair appears only under today's bar — one pair per
+     column width stays legible where 28 would crowd. ——— */
   function dailyChartHTML(mmByDay) {
     mmByDay = mmByDay || {};
     var st = PGRE.studyTime, days = [], max = 1, i;
@@ -374,7 +375,7 @@ PGRE.views.studytime = (function () {
         }
         bars += '<div class="stbar-col" data-tip="' + PGRE.ui.esc(dayLbl + '\\n' + line2) + '">' +
           bar +
-          (mmMin > 0
+          (mmMin > 0 && isToday
             ? '<span class="stbar-mm-n">' + studioMin + '\n&#43;' + mmMin + '</span>'
             : '<span class="stbar-mm-n stbar-mm-n-empty"></span>') +
           '<span class="stbar-x' + (isToday ? ' stbar-x-cur' : '') + '">' + x + '</span></div>';
@@ -386,9 +387,9 @@ PGRE.views.studytime = (function () {
             '<span class="muted">Obsidian sessions are counted, not timed.</span></div>'
           : '') +
         (mmTotal > 0
-          ? '<p class="muted st-note">Studio and Maimemo minutes per day — "studio + Maimemo" under ' +
-            'each bar. Studio is the passive heartbeat plus the focus timer; Maimemo comes from the ' +
-            'Mac helper. Today is highlighted.</p>'
+          ? '<p class="muted st-note">Studio and Maimemo minutes per day — "studio + Maimemo" is ' +
+            'printed under today\'s bar and in every day\'s tooltip. Studio is the passive heartbeat ' +
+            'plus the focus timer; Maimemo comes from the Mac helper. Today is highlighted.</p>'
           : '<p class="muted st-note">Active time each day for the last 28 days — the passive heartbeat ' +
             'plus any focus-timer time, combined. Today is highlighted.</p>');
     }
