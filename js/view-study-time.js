@@ -12,7 +12,8 @@ PGRE.views = PGRE.views || {};
 
 PGRE.views.studytime = (function () {
   var WEEK_H = 20;                 // weekly intensive target (hours)
-  var CAMPAIGN_TOTAL_H = 150;      // exam-horizon total commitment (hours)
+  /* Life Studio (PR 126): the exam is sat — the 150 h "Until exam" horizon
+     bar and its helpers were removed; the countdown lives on Study plan. */
 
   /* ——— Local date helpers (same Monday-based convention as js/study-time.js) ——— */
   function pad2(n) { return String(n).padStart(2, '0'); }
@@ -152,7 +153,7 @@ PGRE.views.studytime = (function () {
   }
 
   /* Shared progress line: "Label · done of total unit · remain unit to go"
-     (or · target met / · above target). Same shape for today, week, exam. */
+     (or · target met / · above target). Same shape for today and week. */
   function progressLine(label, doneStr, totalStr, unit, remainStr, state) {
     var status = label + ' · ' + doneStr + ' of ' + totalStr + ' ' + unit;
     if (state === 'met') status += ' · target met';
@@ -183,127 +184,6 @@ PGRE.views.studytime = (function () {
     '<div class="challenge-prog">' + PGRE.ui.esc(status) + '</div>';
   }
 
-  /* ——— Exam horizon (third bar) ———
-     Fixed intensive commitment: CAMPAIGN_TOTAL_H (150 h). Same progress-line
-     shape as today/week. Fill = log / 150. Pace lives in the tooltip only. */
-  function examDateKey() {
-    var s = PGRE.store.state.settings || {};
-    return s.examDate || PGRE.EXAM_DATE || '2026-11-01';
-  }
-
-  function parseDayKey(key) {
-    if (!key || typeof key !== 'string') return null;
-    var p = key.split('-');
-    if (p.length !== 3) return null;
-    var d = new Date(+p[0], +p[1] - 1, +p[2], 12, 0, 0);
-    return isNaN(d.getTime()) ? null : d;
-  }
-
-  function daysBetweenKeys(a, b) {
-    var da = parseDayKey(a), db = parseDayKey(b);
-    if (!da || !db) return NaN;
-    return Math.round((db.getTime() - da.getTime()) / 86400000);
-  }
-
-  function campaignStartKey() {
-    var best = null;
-    (PGRE.PLAN || []).forEach(function (phase) {
-      (phase.weeks || []).forEach(function (w) {
-        if (!w || w.historical || !w.start) return;
-        if (!best || w.start < best) best = w.start;
-      });
-    });
-    return best || '2026-09-14';
-  }
-
-  function campaignActiveSec() {
-    var start = campaignStartKey();
-    var log = PGRE.store.state.studyLog || {};
-    var total = 0, k;
-    for (k in log) {
-      if (!Object.prototype.hasOwnProperty.call(log, k)) continue;
-      if (typeof log[k] !== 'number') continue;
-      if (k < start) continue;
-      total += log[k];
-    }
-    var today = dayKey(0);
-    if (today >= start) {
-      var stored = typeof log[today] === 'number' ? log[today] : 0;
-      total += Math.max(0, todayActiveSec() - stored);
-    }
-    return total;
-  }
-
-  function fmtH(n) {
-    if (!isFinite(n) || n < 0) n = 0;
-    // Match week hrs(): one decimal under 10, else whole hours.
-    if (n >= 10) return n.toFixed(0);
-    return (Math.round(n * 10) / 10).toFixed(1);
-  }
-
-  function examHorizonHTML() {
-    var daysLeft = (PGRE.gamify && typeof PGRE.gamify.daysToExam === 'function')
-      ? PGRE.gamify.daysToExam()
-      : (PGRE.srs ? PGRE.srs.daysUntil(examDateKey()) : 0);
-    if (!isFinite(daysLeft) || daysLeft < 0) daysLeft = 0;
-
-    var examKey = examDateKey();
-    var examDate = parseDayKey(examKey);
-    var examLabel = examDate
-      ? examDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      : examKey;
-
-    var startKey = campaignStartKey();
-    var spanDays = daysBetweenKeys(startKey, examKey);
-    if (!isFinite(spanDays) || spanDays < 1) spanDays = Math.max(daysLeft, 1);
-    var elapsedDays = daysBetweenKeys(startKey, dayKey(0));
-    if (!isFinite(elapsedDays) || elapsedDays < 0) elapsedDays = 0;
-    elapsedDays = Math.min(spanDays, elapsedDays + 1);
-
-    var totalH = CAMPAIGN_TOTAL_H;
-    var loggedH = campaignActiveSec() / 3600;
-    var remainH = Math.max(0, totalH - loggedH);
-    var expectedSoFar = totalH * (elapsedDays / spanDays);
-    var doneStr = fmtH(Math.min(loggedH, totalH));
-    var remainStr = fmtH(remainH);
-    var totalStr = fmtH(totalH);
-
-    if (daysLeft <= 0) {
-      var doneTip = 'Exam runway\\n' + totalStr + ' h window · ' + examLabel;
-      return '<div class="st-at-meter" data-tip="' + PGRE.ui.esc(doneTip) + '">' +
-        PGRE.ui.meter(100, 'meter-thin meter-horizon') +
-      '</div>' +
-      '<div class="challenge-prog">' +
-        PGRE.ui.esc(progressLine('Until exam', totalStr, totalStr, 'h', '0', 'met')) +
-      '</div>';
-    }
-
-    var fillPct = Math.min(100, 100 * loggedH / totalH);
-    var state = remainH <= 0.05 ? 'met' : (loggedH > totalH + 0.05 ? 'above' : 'go');
-    var status = progressLine('Until exam', doneStr, totalStr, 'h', remainStr, state);
-
-    var delta = loggedH - expectedSoFar;
-    var paceNote = '';
-    if (delta >= 0.5) paceNote = delta.toFixed(1) + ' h ahead of calendar pace';
-    else if (delta <= -0.5) paceNote = (-delta).toFixed(1) + ' h behind calendar pace';
-
-    var tip = 'Exam runway to ' + examLabel + ' (' + daysLeft + ' d left)\\n' +
-      doneStr + ' of ' + totalStr + ' h' +
-      (state === 'go' ? ' · ' + remainStr + ' h to go' : '') +
-      (paceNote ? '\\n' + paceNote : '') +
-      '\\nlogged since ' + startKey;
-
-    return '<div class="st-at-meter" data-tip="' + PGRE.ui.esc(tip) + '">' +
-      PGRE.ui.meter(fillPct, 'meter-thin meter-horizon') +
-    '</div>' +
-    '<div class="challenge-prog">' + PGRE.ui.esc(status) + '</div>';
-  }
-
-
-
-
-
-
   function activityTargetProgressHTML(targetMin, doneSec, timerOn) {
     var html;
     if (!targetMin) {
@@ -327,7 +207,6 @@ PGRE.views.studytime = (function () {
         '<div class="challenge-prog">' + PGRE.ui.esc(status) + '</div>';
     }
     html += weeklyBandHTML();
-    html += examHorizonHTML();
     if (timerOn && targetMin) html += '<p class="muted st-note">Session in progress.</p>';
     return html;
   }
@@ -369,7 +248,7 @@ PGRE.views.studytime = (function () {
       ? Math.ceil(Math.max(0, targetMin * 60 - doneSec) / 60) : 0;
     return '<div class="card" id="st-active-target">' +
       '<h2>Daily activity target</h2>' +
-      '<p class="muted st-lead">Active minutes today — tab activity plus the focus timer — against a goal you pick. Below: this week’s 20 h target, then the 150 h runway to the exam.</p>' +
+      '<p class="muted st-lead">Active minutes today — tab activity plus the focus timer — against a goal you pick. Below: this week’s 20 h target.</p>' +
       '<div id="st-at-progress">' + activityTargetProgressHTML(targetMin, doneSec, timerOn) + '</div>' +
       '<div class="chip-row" id="st-at-chips">' + activityTargetChipsHTML(targetMin) + '</div>' +
       '<div class="st-at-action" id="st-at-action">' +

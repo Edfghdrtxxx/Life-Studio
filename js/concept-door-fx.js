@@ -45,8 +45,12 @@ PGRE.conceptDoorFx = (function () {
   }
 
   function isDark() {
-    return typeof document !== 'undefined' && document.documentElement &&
-      document.documentElement.getAttribute('data-theme') === 'dark';
+    // Life Studio named themes: any theme marked dark sets [data-dark];
+    // the literal 'dark' attr stays the warm-dark theme's own value.
+    if (typeof document === 'undefined' || !document.documentElement) return false;
+    var el = document.documentElement;
+    if (el.hasAttribute && el.hasAttribute('data-dark')) return true;
+    return el.getAttribute('data-theme') === 'dark';
   }
 
   function syncCanvas() {
@@ -243,7 +247,7 @@ PGRE.conceptDoorFx = (function () {
       if (window.MutationObserver) {
         new MutationObserver(onTheme).observe(document.documentElement, {
           attributes: true,
-          attributeFilter: ['data-theme']
+          attributeFilter: ['data-theme', 'data-dark']
         });
       }
       if (window.matchMedia) {

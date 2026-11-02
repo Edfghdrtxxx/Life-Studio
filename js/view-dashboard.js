@@ -1,6 +1,7 @@
-/* Dashboard — the home view. Today is the first card (greeting, exam
-   countdown, prep runway, the Mixed practice launcher, then three equal
-   tiles: Mistake book, Recall, Mock exam). The next card is the same Daily
+/* Dashboard — the home view. Today is the first card (greeting, the
+   Mixed practice launcher, then three equal tiles: Mistake book, Recall,
+   Mock exam). The exam countdown and prep runway live on the Study plan
+   page (Life Studio phase 1). The next card is the same Daily
    activity target card as the Study time page, then Intensity (banded
    study-intensity feedback, js/intensity.js), then This week. Level/XP,
    stat tiles, challenges, QOTD, readiness and
@@ -807,20 +808,6 @@ PGRE.views.dashboard = (function () {
 
   /* ———————————————————————————————————————————————————————————— */
 
-  function examDateStr() {
-    var s = PGRE.store.state;
-    return (s.settings && s.settings.examDate) || PGRE.EXAM_DATE || '';
-  }
-
-  function examDateLabel() {
-    var d = examDateStr();
-    if (!d) return '';
-    var dt = new Date(d + 'T12:00:00');
-    if (isNaN(dt.getTime())) return '';
-    return dt.toLocaleDateString('en-US', {
-      weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
-    });
-  }
 
   /* Next unused intact ETS form. Never GR8677/GR9277 as a fresh test.
      A sitting counts as sat only when submittedAt is set (in-progress
@@ -929,44 +916,6 @@ PGRE.views.dashboard = (function () {
   }
   PGRE.nextMockPointer = nextMockPointer;
 
-  /* Prep runway: one segment per plan week from the first plan week to exam
-     week. Past weeks are solid, the current week fills by the day, later
-     weeks are track. Each segment carries a chart-tip with its dates and
-     focus. */
-  function runwayHTML() {
-    var ui = PGRE.ui;
-    var weeks = PGRE.planWeeks ? PGRE.planWeeks() : [];
-    if (!weeks.length) return '';
-    var today = PGRE.store.today();
-    var nowIdx = -1;
-    var segs = '';
-    weeks.forEach(function (pw, i) {
-      var w = pw.week;
-      var cls = 'runway-wk';
-      var fill = '';
-      if (today > w.end) cls += ' is-past';
-      else if (today >= w.start) {
-        cls += ' is-now';
-        nowIdx = i;
-        var day = Math.round((new Date(today + 'T12:00:00') - new Date(w.start + 'T12:00:00')) / 86400000);
-        fill = ' style="--wk-fill:' + Math.round(100 * (day + 1) / 7) + '%"';
-      }
-      segs += '<span class="' + cls + '"' + fill + ' tabindex="0" data-tip="' +
-        ui.esc(ui.dateRange(w.start, w.end) + '\n' + w.title) + '"></span>';
-    });
-    var short = function (iso) {
-      return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    };
-    var last = weeks[weeks.length - 1].week;
-    var meta = nowIdx >= 0
-      ? 'Week ' + (nowIdx + 1) + ' of ' + weeks.length
-      : (today < weeks[0].week.start ? 'Plan starts ' + short(weeks[0].week.start) : 'Plan complete');
-    var side = (nowIdx >= 0 && nowIdx < weeks.length - 1) ? 'Exam week starts ' + short(last.start) : '';
-    return '<div class="runway">' +
-      '<div class="runway-track" role="img" aria-label="' + ui.esc(meta + (side ? ', ' + side : '')) + '">' + segs + '</div>' +
-      '<div class="runway-meta"><span>' + meta + '</span>' + (side ? '<span>' + side + '</span>' : '') + '</div>' +
-    '</div>';
-  }
 
   /* One "today" decision surface: the next move (mixed practice) on its own
      row, then three equal tiles for the SRS dues (mistakes, recall) and the
@@ -987,8 +936,8 @@ PGRE.views.dashboard = (function () {
     var greet = hour < 5 ? 'Burning the midnight oil' :
                 hour < 12 ? 'Good morning' :
                 hour < 18 ? 'Good afternoon' : 'Good evening';
-    var examDate = (s.settings && s.settings.examDate) || PGRE.EXAM_DATE;
-    var days = PGRE.srs.daysUntil(examDate);
+    // Life Studio: the exam is sat — the countdown and prep runway moved to
+    // the Study plan page (More group); the dashboard hero keeps the greeting.
     var dateLine = new Date().toLocaleDateString('en-US', {
       weekday: 'long', month: 'long', day: 'numeric'
     });
@@ -1006,13 +955,7 @@ PGRE.views.dashboard = (function () {
           '<h1 class="today-greet">' + ui.esc(greet) + '.</h1>' +
           '<p class="today-lead">' + ui.esc(lead) + '</p>' +
         '</div>' +
-        '<div class="hero-right">' +
-          '<div class="countdown"><div class="countdown-num">' + days + '</div>' +
-          '<div class="countdown-label">day' + (days === 1 ? '' : 's') + ' to the exam<br>' +
-            examDateLabel() + '</div></div>' +
-        '</div>' +
       '</div>' +
-      runwayHTML() +
       '<div class="rq-rows">' +
       '<div class="rq-row rq-primary"><div class="rq-row-copy"><span class="rq-kicker">Next up</span>' +
         '<span class="rq-label">Mixed practice</span>' +
@@ -1113,15 +1056,13 @@ PGRE.views.dashboard = (function () {
     }
     if (!unseen) return note;
     var settings = PGRE.store.state.settings || {};
-    var exam = settings.examDate || '';
-    var days = exam && srs.daysUntil ? srs.daysUntil(exam) : null;
-    var examDays = (typeof days === 'number' && days > 0) ? days : 0;
     var target = srs.clampTarget(settings.formulaDailyTarget);
     var postponed = typeof srs.formulaDayPostponed === 'function' ? srs.formulaDayPostponed(deck) : 0;
     // Pieces are joined with ' · ' so the mount can drop the leading count
     // when the tile's status line already shows the same words.
+    // Life Studio: the exam is sat — the countdown wording lives on the
+    // Study plan page now, not on the dashboard (D1, PR 126).
     var line = unseen + ' not yet introduced · ' +
-      examDays + ' day' + (examDays === 1 ? '' : 's') + ' to the exam · ' +
       target + ' a day · ' +
       postponed + ' due review' + (postponed === 1 ? '' : 's') + ' waiting. ' +
       'To cover more, add cards in Recall.';
@@ -1385,7 +1326,7 @@ PGRE.views.dashboard = (function () {
     if (PGRE.motion && !PGRE.motion.reduced) {
       countUpText(document.querySelector('.hero-level-num'), 700);
       countUpText(document.querySelector('.hero-xp-note'), 700);
-      // countdown must paint at its final value — do not tween .countdown-num
+      // exam-countdown tween guard removed with the countdown (Life Studio)
       document.querySelectorAll('.stat-tile .stat-value').forEach(function (el) {
         countUpText(el, 700);
       });

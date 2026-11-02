@@ -945,7 +945,7 @@ PGRE.cardDiagrams['supp-radiation-field'] = function (host) {
     });
     themeObs.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ['data-theme']
+      attributeFilter: ['data-theme', 'data-dark']
     });
   }
   draw();

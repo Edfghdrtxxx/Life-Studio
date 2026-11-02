@@ -48,8 +48,12 @@
   }
 
   function isDark() {
+    // Life Studio named themes: [data-dark] marks every dark theme; the
+    // literal 'dark' attr stays warm-dark's own value.
     var el = typeof document !== 'undefined' ? document.documentElement : null;
-    return !!(el && typeof el.getAttribute === 'function' && el.getAttribute('data-theme') === 'dark');
+    if (!el || typeof el.getAttribute !== 'function') return false;
+    if (el.hasAttribute && el.hasAttribute('data-dark')) return true;
+    return el.getAttribute('data-theme') === 'dark';
   }
 
   // Site --accent-deep: the coral that is legible as text, lighter on the dark stage.

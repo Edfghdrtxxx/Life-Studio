@@ -1003,12 +1003,36 @@ PGRE.srs = {
     return m ? parseInt(m[1], 10) : Infinity;
   },
 
+  /* Cards whose "new today" slot is already taken: a never-studied id in
+     today's batch plus every card whose FIRST review landed today
+     (cardReviews row n:0 on today's date). Manual adds of new cards count
+     toward the cap too — the cap is on introductions, not on the picker. */
+  newCardsCommittedToday: function () {
+    var s = PGRE.store.state || {};
+    var seen = Object.create(null), n = 0;
+    var batch = s.formulaDay;
+    if (batch && Array.isArray(batch.newIds)) {
+      batch.newIds.forEach(function (id) {
+        if (id && !seen[id]) { seen[id] = 1; n++; }
+      });
+    }
+    var t = this.today();
+    (s.cardReviews || []).forEach(function (r) {
+      if (r && r.n === 0 && r.d === t && r.id && !seen[r.id]) { seen[r.id] = 1; n++; }
+    });
+    return n;
+  },
+
   /* Auto-pick — the one rule behind Study on Formula recall home, the
      picker's Fill button and the Today dashboard: due reviews first (most
      overdue, then most lapses, then lowest ease), then never-studied cards in
      book order (chapter, then deck order), up to the daily target. Skips
      suspended cards, cards already chosen, and cards graded today. Adds
      nothing to the batch itself.
+     Life Studio: opts.subject limits BOTH pools to one PGRE.SUBJECTS id
+     (the batch it fills stays the single mixed list), and new-card
+     suggestions stop at settings.newCardsPerDay minus the day's committed
+     introductions (settings.recallSubject is a UI choice, not read here).
      opts.have — { id: 1 } already chosen (default: the saved batch);
      opts.room — how many to return (default: target minus remaining picks);
      opts.fresh === false — due reviews only, no new cards.
@@ -1019,6 +1043,12 @@ PGRE.srs = {
     var self = this, t = this.today();
     var out = { reviewIds: [], newIds: [] };
     if (!deck.length) return out;
+    var subject = (opts.subject && opts.subject !== 'all' &&
+                   PGRE.subjectById && PGRE.subjectById(opts.subject))
+      ? PGRE.subjectById(opts.subject).id : null;
+    var inSubject = function (c) {
+      return !subject || (PGRE.cardSubject ? PGRE.cardSubject(c) === subject : true);
+    };
     var have = opts.have, room = opts.room;
     if (!have) {
       have = Object.create(null);
@@ -1035,7 +1065,7 @@ PGRE.srs = {
     deck.forEach(function (c, index) {
       if (!c || !c.id ||
           (have && Object.prototype.hasOwnProperty.call(have, c.id) && have[c.id]) ||
-          self.isSuspended(c.id)) return;
+          self.isSuspended(c.id) || !inSubject(c)) return;
       var st = self.cardState(c.id);
       if (!st) fresh.push({ id: c.id, ch: self.formulaChapter(c.id), index: index });
       else if (st.due <= t && !self.studiedToday(st)) due.push({ id: c.id, st: st, index: index });
@@ -1056,7 +1086,14 @@ PGRE.srs = {
     out.reviewIds = ids(due.slice(0, room));
     room -= out.reviewIds.length;
     if (room > 0 && opts.fresh !== false) {
-      out.newIds = ids(fresh.slice(0, room));
+      var freshRoom = room;
+      var limit = PGRE.store.state.settings &&
+                  PGRE.store.state.settings.newCardsPerDay;
+      if (limit != null) {
+        var left = this.clampTarget(limit) - this.newCardsCommittedToday();
+        if (left < freshRoom) freshRoom = Math.max(0, left);
+      }
+      out.newIds = ids(fresh.slice(0, freshRoom));
     }
     return out;
   },

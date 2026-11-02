@@ -1577,8 +1577,11 @@ window.PGRE.visualizers = window.PGRE.visualizers || {};
     }
   };
   function vizStageTheme() {
-    var dark = typeof document !== 'undefined' && document.documentElement &&
-      document.documentElement.getAttribute('data-theme') === 'dark';
+    // Life Studio named themes: [data-dark] marks every dark theme; the
+    // literal 'dark' attr stays warm-dark's own value.
+    var el = typeof document !== 'undefined' ? document.documentElement : null;
+    var dark = el && ((el.hasAttribute && el.hasAttribute('data-dark')) ||
+      el.getAttribute('data-theme') === 'dark');
     return dark ? VIZ_STAGE_THEMES.dark : VIZ_STAGE_THEMES.light;
   }
   global.PGRE.vizStageTheme = vizStageTheme;

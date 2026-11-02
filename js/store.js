@@ -76,9 +76,17 @@ PGRE.store = {
       notes: {},
       // bookmarked questions: qid -> ISO timestamp of bookmarking
       bookmarks: {},
-      // user preferences; theme is applied at boot (PGRE.setTheme persists it)
-      settings: { theme: 'light', paceTrainer: true, paceTargetSec: 103,
+      // user preferences; theme is applied at boot (PGRE.setTheme persists it).
+      // Life Studio: theme is a named theme id (js/data-themes.js; 'paper' is
+      // the default, legacy 'light'/'dark' migrate in migrate()).
+      settings: { theme: 'paper', paceTrainer: true, paceTargetSec: 103,
                   keyboard: true, qotdTopicRotate: true, formulaDailyTarget: 10,
+                  // Life Studio — mixed-queue limits: how many never-studied
+                  // cards a day the auto-pick may introduce (reviews are not
+                  // capped), and which subject Recall studies ('all' or a
+                  // PGRE.SUBJECTS id). The batch itself stays one mixed list.
+                  newCardsPerDay: 10,
+                  recallSubject: 'all',
                   // exam date (F3) — drives the interval cap; literal
                   // mirrors PGRE.EXAM_DATE (js/data-topics.js)
                   examDate: '2026-11-01',
@@ -162,6 +170,12 @@ PGRE.store = {
       cardReviews: [],
       // F2 — per-card mnemonic notes: cardId -> { text, updatedAt }
       cardNotes: {},
+
+      // Life Studio — the student's own recall cards (js/user-cards.js):
+      // id -> { id, subject, front, back, note?, name, kind:'user',
+      //         createdAt, updatedAt }. Ids are user-<subject-tag>-<n> and
+      // never change; deletions are tombstoned like the other user maps.
+      userCards: {},
       // recent activity feed, newest first
       log: [],
       // content files metadata mirror (text itself is in IndexedDB)
@@ -233,9 +247,9 @@ PGRE.store = {
     // stale sibling heap can't resurrect the key on a missed storage event.
     // A record whose own timestamp postdates the tombstone is a deliberate
     // re-add and survives (and clears the tombstone); older/untimed = stale.
-    var TOMBED = { notes: 1, bookmarks: 1, cardNotes: 1, formulaSuspended: 1 };
+    var TOMBED = { notes: 1, bookmarks: 1, cardNotes: 1, formulaSuspended: 1, userCards: 1 };
     function recTs(map, val) {
-      if (map === 'notes' || map === 'cardNotes') return val && val.updatedAt;
+      if (map === 'notes' || map === 'cardNotes' || map === 'userCards') return val && val.updatedAt;
       return typeof val === 'string' ? val : null; // bookmarks: ISO; suspended: ISO
     }
     if (isObj(disk.tombstones)) {
@@ -320,7 +334,7 @@ PGRE.store = {
         if (dN < lN) return false;
         return ((diskVal && diskVal.lastTouchedAt) || '') > ((liveVal && liveVal.lastTouchedAt) || '');
       }
-      if (map === 'notes' || map === 'cardNotes') {
+      if (map === 'notes' || map === 'cardNotes' || map === 'userCards') {
         return ((diskVal && diskVal.updatedAt) || '') > ((liveVal && liveVal.updatedAt) || '');
       }
       if (map === 'bookmarks' || map === 'formulaSuspended') {
@@ -329,7 +343,8 @@ PGRE.store = {
       return false;
     }
     ['questions', 'topics', 'plan', 'mistakes', 'notes', 'bookmarks',
-     'flags', 'cards', 'cardNotes', 'formulaSuspended', 'migrations'].forEach(function (k) {
+     'flags', 'cards', 'cardNotes', 'formulaSuspended', 'migrations',
+     'userCards'].forEach(function (k) {
       if (!isObj(disk[k])) return;
       if (!isObj(st[k])) st[k] = {};
       var tombed = st.tombstones && st.tombstones[k];
@@ -930,6 +945,14 @@ PGRE.store = {
     if (typeof st._rev !== 'number') st._rev = 0;
     if (typeof st._epoch !== 'number') st._epoch = 0;
     if (st.settings.examDate === '2026-10-28') st.settings.examDate = '2026-11-01';
+    // Life Studio — one-time theme migration (LIFE-STUDIO-SPEC.md): a saved
+    // 'light' becomes Paper and ink (the chosen default); 'dark' keeps the
+    // same palette under its new name, Warm dark. Unknown values fall back
+    // to the default. Literal mapping so store.js does not depend on
+    // js/data-themes.js having loaded first.
+    if (st.settings.theme === 'light') st.settings.theme = 'paper';
+    else if (st.settings.theme === 'dark') st.settings.theme = 'warm-dark';
+    else if (PGRE.normalizeTheme) st.settings.theme = PGRE.normalizeTheme(st.settings.theme);
   },
 
   /* Returns true when the state reached localStorage. */
@@ -1300,12 +1323,32 @@ PGRE.subscribeStateAdopted = function (fn) {
   };
 };
 
-/* The formula deck, merged from its four sources (first occurrence of an id
+/* The student's own recall cards as deck rows (Life Studio, js/user-cards.js).
+   Always 'present': migrate() guarantees the map exists, so its absence is
+   never a partial read. Tombstoned ids are simply absent from the map — the
+   merge rules stop a stale sibling putting them back. */
+PGRE.userCardDeck = function () {
+  var m = (PGRE.store.state && PGRE.store.state.userCards) || {};
+  var out = [];
+  for (var id in m) {
+    if (!Object.prototype.hasOwnProperty.call(m, id)) continue;
+    var c = m[id];
+    if (c && typeof c === 'object' && c.id != null && c.id !== '') out.push(c);
+  }
+  out.sort(function (a, b) {
+    return ((a.createdAt || '') < (b.createdAt || '') ? -1 :
+            (a.createdAt || '') > (b.createdAt || '') ? 1 : 0);
+  });
+  return out;
+};
+
+/* The formula deck, merged from its five sources (first occurrence of an id
    wins): book-derived cards in content/bank/cpg-formulas.js
    (PGRE.BOOK_FORMULAS — gitignored, may be absent), hand-appended literals in
    PGRE.FORMULAS (js/data-formulas.js), book lists in content/bank/cpg-lists.js
-   (PGRE.BOOK_LISTS — gitignored, may be absent, kind: 'list' cards), and the
-   { id: 'formula-deck', cards: [...] } record in the IndexedDB content store.
+   (PGRE.BOOK_LISTS — gitignored, may be absent, kind: 'list' cards), the
+   { id: 'formula-deck', cards: [...] } record in the IndexedDB content store,
+   and the student's own cards in state.userCards (js/user-cards.js).
    Always resolves to an array. PGRE.formulaDeckStatus is set in the same
    turn and reports which sources were present. A missing script or a failed
    IndexedDB read sets partial: true. An empty IndexedDB record (no imported
@@ -1331,11 +1374,14 @@ PGRE.formulaDeck = function () {
     else if (idbStatus === 'unavailable' || idbStatus === 'error') indexedDB = idbStatus;
     else indexedDB = 'empty';
     function sourceState(v) { return Array.isArray(v) ? 'present' : 'missing'; }
+    var user = PGRE.userCardDeck ? PGRE.userCardDeck() : [];
     var sources = {
       bookFormulas: sourceState(PGRE.BOOK_FORMULAS),
       formulas: sourceState(PGRE.FORMULAS),
       bookLists: sourceState(PGRE.BOOK_LISTS),
-      indexedDB: indexedDB
+      indexedDB: indexedDB,
+      // Always present (empty map is a valid source) — never a partial read.
+      userCards: user.length ? 'present' : 'empty'
     };
     var missing = [];
     if (sources.bookFormulas !== 'present') missing.push('bookFormulas');
@@ -1352,7 +1398,8 @@ PGRE.formulaDeck = function () {
     return (Array.isArray(PGRE.BOOK_FORMULAS) ? PGRE.BOOK_FORMULAS : [])
       .concat(Array.isArray(PGRE.FORMULAS) ? PGRE.FORMULAS : [],
               Array.isArray(PGRE.BOOK_LISTS) ? PGRE.BOOK_LISTS : [],
-              (rec && rec.cards) || [])
+              (rec && rec.cards) || [],
+              user)
       .filter(function (c) {
         if (!c || c.id == null || c.id === '') return false;
         if (seen.has(c.id)) return false;
