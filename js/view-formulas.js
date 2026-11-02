@@ -1073,9 +1073,9 @@ PGRE.views.formulas = (function () {
         buttons += '<button class="btn btn-ghost" id="replace-daily-btn">' +
           'Replace with today’s list</button>';
       }
-      line = t.adhoc
+      line = (t.done ? t.done + ' reviewed today. ' : '') + (t.adhoc
         ? 'A separate study session is in progress. It stays until you resume it or replace it.'
-        : 'A study session is in progress.';
+        : 'A study session is in progress.');
     } else if (M) {
       big = M;
       buttons = study((t.done ? 'Next ' : 'Study ') + M + ' card' + (M === 1 ? '' : 's')) + edit;

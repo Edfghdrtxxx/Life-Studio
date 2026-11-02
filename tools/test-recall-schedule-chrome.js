@@ -296,18 +296,20 @@ async function helpers(page) {
     await page.eval(function () { location.hash = '#/'; });
     await sleep(250);
     await page.eval(function () { location.hash = '#/formulas'; });
-    await wait('.fm-landing');
+    await wait('.review-card');
     return JSON.parse(await page.eval(function () {
       var s = PGRE.store.state, srs = PGRE.srs, deck = PGRE.views.formulas.getDeck();
       var tiles = {}, due = {}, studied = {};
-      document.querySelectorAll('.fm-stats .stat-tile').forEach(function (t) {
-        tiles[t.querySelector('.stat-label').textContent] = t.querySelector('.stat-value').textContent.trim();
-      });
+      /* Round-2 home: no stat tiles; "N reviewed today" lives in the
+         review card's line. Keep the old 'Reviewed today' key. */
+      var line = document.querySelector('.fm-today-line');
+      var m = line && line.textContent.match(/(\d+) reviewed today/);
+      tiles['Reviewed today'] = m ? m[1] : '0';
       deck.forEach(function (c) {
         due[c.id] = srs.cardDue(c.id);
         studied[c.id] = srs.studiedToday(srs.cardState(c.id));
       });
-      var title = document.querySelector('.fm-today-title');
+      var title = document.querySelector('.review-card h2');
       return JSON.stringify({
         today: srs.today(),
         title: title ? title.textContent : '',
@@ -608,8 +610,10 @@ var STAGES = [
     run: async function (page, h) {
       await h.seed(h.FS_SPEC);
       await page.eval(function () { location.hash = '#/formulas'; });
-      await h.wait('[data-mode="type"]');
-      await h.click('[data-mode="type"]');
+      await h.wait('[data-mode="practice"]');
+      await h.click('[data-mode="practice"]');
+      await h.wait('[data-game="type"]');
+      await h.click('[data-game="type"]');
       await h.wait('#game-start');
       await h.click('#game-start');
       await h.wait('#flash-submit');

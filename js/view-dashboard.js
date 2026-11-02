@@ -1053,6 +1053,15 @@ PGRE.views.dashboard = (function () {
         : 'Today’s session is in progress.';
       primary = '<button class="btn btn-primary" id="today-study">Resume: ' +
         t.resume.left + ' left</button>';
+    } else if (t.remaining) {
+      // A picked batch outranks fresh due work: what is left is owed, the
+      // due cards are a suggestion the Start click adds around it.
+      num = t.remaining + '<small>left</small>';
+      line = (t.done ? t.done + ' reviewed today. ' : '') + t.remaining +
+        ' card' + (t.remaining === 1 ? '' : 's') + ' left in today’s list.' +
+        (tot.due ? ' ' + tot.due + ' more due are not in the list yet.' : '');
+      primary = '<button class="btn btn-primary" id="today-study">Study ' +
+        t.remaining + ' card' + (t.remaining === 1 ? '' : 's') + '</button>';
     } else if (tot.due) {
       num = tot.due + '<small>' + (t.done ? 'still due' : 'due') + '</small>';
       var newPhrase = tot.due >= t.T
@@ -1066,12 +1075,6 @@ PGRE.views.dashboard = (function () {
         newPhrase;
       primary = '<button class="btn btn-primary" id="today-study">' +
         (t.done ? 'Next ' : 'Start: ') + Math.min(t.T, tot.due) + ' cards</button>';
-    } else if (t.remaining) {
-      num = t.remaining + '<small>left</small>';
-      line = t.done + ' reviewed today. ' + t.remaining +
-        ' card' + (t.remaining === 1 ? '' : 's') + ' left in today’s list.';
-      primary = '<button class="btn btn-primary" id="today-study">Study ' +
-        t.remaining + ' card' + (t.remaining === 1 ? '' : 's') + '</button>';
     } else {
       var room = Math.max(0, t.newCap - t.newUsed);
       var n = Math.min(room, tot.fresh);
@@ -1169,13 +1172,8 @@ PGRE.views.dashboard = (function () {
     var goal = (s.settings && s.settings.dailyTargetMin) || 0;
     var todayMin = Math.round((PGRE.studyTime && PGRE.studyTime.liveTodaySec
       ? PGRE.studyTime.liveTodaySec() : 0) / 60);
-    var weekMin = 0;
-    if (PGRE.studyTime && PGRE.studyTime.daySec) {
-      for (var wi = 0; wi < 7; wi++) {
-        var dk = PGRE.srs.addDays(-wi);
-        weekMin += PGRE.studyTime.daySec(dk) / 60;
-      }
-    }
+    var weekMin = (PGRE.studyTime && PGRE.studyTime.weekSec
+      ? PGRE.studyTime.weekSec() : 0) / 60;
     html += '<div class="ls-grid2">' +
       '<div class="tile"><span class="kicker">Streak</span>' +
         '<div class="big">' + streak + '<small>days · best ' + s.streak.best + '</small></div>' +

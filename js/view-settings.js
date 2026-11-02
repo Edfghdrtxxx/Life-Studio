@@ -86,13 +86,6 @@ PGRE.views.settings = (function () {
         '<div class="seg" role="group" id="dir-toggle">' +
           '<button aria-pressed="' + (!s.formulaReverse) + '" data-dir="0">Front → back</button>' +
           '<button aria-pressed="' + (!!s.formulaReverse) + '" data-dir="1">Back → front</button></div></div>' +
-      '<div class="set-row"><div><b style="font-weight:500">Cap intervals to a date</b>' +
-        '<div class="d">Kept no card longer than the exam date. Off now — a future date would ' +
-        'shorten every subject’s intervals.</div>' +
-        keyNote('formulaExamCap') + '</div>' +
-        '<div class="seg" role="group" id="exam-cap-toggle">' +
-          '<button aria-pressed="' + (s.formulaExamCap === 'off' || !s.formulaExamCap) + '" data-cap="off">Off</button>' +
-          '<button aria-pressed="' + (s.formulaExamCap === 'on') + '" data-cap="on">On</button></div></div>' +
       '<div class="card" style="margin-top:16px"><h2>Daily time goal</h2>' +
         '<div class="set-row"><div><b style="font-weight:500">Active minutes per day</b>' +
           '<div class="d">Time with a studio tab in use, plus the focus timer. The weekly line ' +
@@ -201,16 +194,6 @@ PGRE.views.settings = (function () {
         PGRE.store.state.settings.formulaReverse = b.getAttribute('data-dir') === '1';
         PGRE.store.save();
         dir.querySelectorAll('button').forEach(function (o) {
-          o.setAttribute('aria-pressed', String(o === b));
-        });
-      });
-    });
-    var cap = document.getElementById('exam-cap-toggle');
-    if (cap) cap.querySelectorAll('button').forEach(function (b) {
-      b.addEventListener('click', function () {
-        PGRE.store.state.settings.formulaExamCap = b.getAttribute('data-cap');
-        PGRE.store.save();
-        cap.querySelectorAll('button').forEach(function (o) {
           o.setAttribute('aria-pressed', String(o === b));
         });
       });

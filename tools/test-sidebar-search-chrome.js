@@ -353,8 +353,8 @@ var STAGES = [
     h.assert(await page.eval(function () {
       return document.getElementById('srch-input').value === '' && document.activeElement.id === 'srch-input' &&
         !document.querySelector('.srch-hit') &&
-        document.querySelector('#sidebar-nav a[href="#/search"]').classList.contains('active');
-    }), 'the Search page opened from its sidebar link is unchanged: empty box, stats card, link active');
+        !document.querySelector('#sidebar-nav a[href="#/search"]');
+    }), 'the Search page is unchanged: empty box, stats card; round 2 leaves it out of the nav');
 
     // the shortcut stays out of fields
     await page.press('/');
@@ -402,7 +402,7 @@ var STAGES = [
       });
       return document.getElementById('srch-input').value === 'energy' &&
         heads.indexOf('Questions') !== -1 && heads.indexOf('Formula cards') !== -1 &&
-        document.querySelector('#sidebar-nav a[href="#/search"]').classList.contains('active');
+        !document.querySelector('#sidebar-nav a[href="#/search"]');
     }), 'the last row lands on #/search/energy with the query already searched');
     h.assert(await page.eval(function () {
       var m = getComputedStyle(document.querySelector('.srch-hit mark'));
@@ -429,10 +429,10 @@ var STAGES = [
     h.assert(!u.open && u.query === '' && u.expanded === 'false' && u.descendant === null && u.focus !== 'sbs-input',
       'Escape clears the query and closes the panel');
 
-    await page.eval('() => { document.querySelector("#sidebar-nav a[href=\\"#/plan\\"]").focus(); }');
+    await page.eval('() => { document.querySelector("#sidebar-nav a[href=\\"#/study-time\\"]").focus(); }');
     await page.press('/');
     await page.press('Escape');
-    h.assert(await page.eval('document.activeElement.getAttribute("href")') === '#/plan',
+    h.assert(await page.eval('document.activeElement.getAttribute("href")') === '#/study-time',
       'Escape returns focus to where it was before the shortcut');
 
     await h.blur();
@@ -597,12 +597,9 @@ var STAGES = [
 
   { name: 'where-the-shortcut-stays-out', size: DESKTOP, run: async function (page, h) {
     await h.load({ hash: '#/formulas' });
-    await h.until('Array.prototype.some.call(document.querySelectorAll("#view button"), ' +
-      'function (b) { return b.textContent.trim() === "Search"; })', 'Recall\'s tabs');
+    await h.until('!!document.querySelector(\'#view .flash-tab[data-mode="browse"]\')', 'Recall\'s tabs');
     await page.eval(function () {
-      Array.prototype.filter.call(document.querySelectorAll('#view button'), function (b) {
-        return b.textContent.trim() === 'Search';
-      })[0].click();
+      document.querySelector('#view .flash-tab[data-mode="browse"]').click();
     });
     await h.until('!!document.getElementById("fs-input")', 'Recall\'s Search tab');
     await h.blur();
