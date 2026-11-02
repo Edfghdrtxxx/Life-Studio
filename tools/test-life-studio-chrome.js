@@ -193,6 +193,23 @@ async function main() {
     /* --- dashboard: countdown and runway are gone --------------------------- */
     check(await ev('!document.querySelector(".countdown")'), 'dashboard shows no countdown');
     check(await ev('!document.querySelector(".runway")'), 'dashboard shows no prep runway');
+    check(await ev('document.getElementById("view").textContent.indexOf("to the exam") === -1'),
+      'dashboard carries no "days to the exam" wording');
+    check(await ev('document.getElementById("view").textContent.indexOf("Until exam") === -1'),
+      'the activity card shows no Until exam line');
+
+    /* Study time: the same activity card, checked on its own page too. */
+    await ev('location.hash = "#/study-time"');
+    await waitFor('!!document.getElementById("st-active-target")', 'the activity target card');
+    check(await ev('document.getElementById("st-active-target").textContent.indexOf("runway to the exam") === -1'),
+      'the study-time lead drops the runway sentence');
+    check(await ev('document.getElementById("st-active-target").textContent.indexOf("Until exam") === -1'),
+      'the study-time card drops the Until exam bar');
+    check(await ev('document.getElementById("st-active-target").textContent.indexOf("This week") !== -1'),
+      'the weekly target band stays');
+    await shot('study-time-card.png');
+    await ev('location.hash = "#/"');
+    await sleep(300);
 
     /* --- settings: theme picker --------------------------------------------- */
     await ev('location.hash = "#/settings"');

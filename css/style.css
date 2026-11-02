@@ -5655,9 +5655,6 @@ a.focus-mode-page:hover { color: var(--ink); text-decoration: underline; }
   transform: translateX(-0.5px);
 }
 .meter-week .meter-fill { background: var(--ink-2); }
-/* Exam runway — warm bronze (medal ramp). Third step after today's coral
-   and this week's ink-gray; no cool teal on cream. */
-.meter-horizon .meter-fill { background: var(--bronze); }
 
 
 /* Daily activity — 28 pure-div bars sharing the forecast-strip look. */

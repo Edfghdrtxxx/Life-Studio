@@ -1,6 +1,7 @@
-/* Dashboard — the home view. Today is the first card (greeting, exam
-   countdown, prep runway, the Mixed practice launcher, then three equal
-   tiles: Mistake book, Recall, Mock exam). The next card is the same Daily
+/* Dashboard — the home view. Today is the first card (greeting, the
+   Mixed practice launcher, then three equal tiles: Mistake book, Recall,
+   Mock exam). The exam countdown and prep runway live on the Study plan
+   page (Life Studio phase 1). The next card is the same Daily
    activity target card as the Study time page, then Intensity (banded
    study-intensity feedback, js/intensity.js), then This week. Level/XP,
    stat tiles, challenges, QOTD, readiness and
@@ -1055,15 +1056,13 @@ PGRE.views.dashboard = (function () {
     }
     if (!unseen) return note;
     var settings = PGRE.store.state.settings || {};
-    var exam = settings.examDate || '';
-    var days = exam && srs.daysUntil ? srs.daysUntil(exam) : null;
-    var examDays = (typeof days === 'number' && days > 0) ? days : 0;
     var target = srs.clampTarget(settings.formulaDailyTarget);
     var postponed = typeof srs.formulaDayPostponed === 'function' ? srs.formulaDayPostponed(deck) : 0;
     // Pieces are joined with ' · ' so the mount can drop the leading count
     // when the tile's status line already shows the same words.
+    // Life Studio: the exam is sat — the countdown wording lives on the
+    // Study plan page now, not on the dashboard (D1, PR 126).
     var line = unseen + ' not yet introduced · ' +
-      examDays + ' day' + (examDays === 1 ? '' : 's') + ' to the exam · ' +
       target + ' a day · ' +
       postponed + ' due review' + (postponed === 1 ? '' : 's') + ' waiting. ' +
       'To cover more, add cards in Recall.';
@@ -1327,7 +1326,7 @@ PGRE.views.dashboard = (function () {
     if (PGRE.motion && !PGRE.motion.reduced) {
       countUpText(document.querySelector('.hero-level-num'), 700);
       countUpText(document.querySelector('.hero-xp-note'), 700);
-      // countdown must paint at its final value — do not tween .countdown-num
+      // exam-countdown tween guard removed with the countdown (Life Studio)
       document.querySelectorAll('.stat-tile .stat-value').forEach(function (el) {
         countUpText(el, 700);
       });
