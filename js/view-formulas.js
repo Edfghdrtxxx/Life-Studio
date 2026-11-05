@@ -235,7 +235,7 @@ PGRE.views.formulas = (function () {
     if (searchLoad) return searchLoad;
     searchLoad = new Promise(function (resolve) {
       var s = document.createElement('script');
-      s.src = 'js/formula-search.js?v=20261013a';
+      s.src = 'js/formula-search.js?v=20261105a';
       s.onload = function () { resolve(); };
       s.onerror = function () { searchLoad = null; searchFailed = true; resolve(); };
       document.head.appendChild(s);
@@ -1806,7 +1806,7 @@ PGRE.views.formulas = (function () {
     function statusText(c) {
       var st = srs.cardState(c.id);
       if (locked[c.id]) return locked[c.id] === 'again' ? 'again today' : 'done today';
-      if (srs.isSuspended(c.id)) return 'put away';
+      if (srs.isSuspended(c.id)) return 'parked';
       if (!st) return 'new';
       var du = srs.daysUntil(st.due);
       return du <= 0 ? 'due now' : 'due in ' + srs.ivlLabel(du);
@@ -1833,7 +1833,7 @@ PGRE.views.formulas = (function () {
           ? 'Due again today — stays in today’s list'
           : 'Already graded today';
       } else if (srs.isSuspended(id)) {
-        chips = '<span class="due-chip suspended-chip">put away</span>';
+        chips = '<span class="due-chip suspended-chip">parked</span>';
         note = 'No scheduled reviews';
       } else {
         var st = srs.cardState(id);
@@ -4635,7 +4635,7 @@ PGRE.views.formulas = (function () {
     } else {
       chips += '<span class="due-chip">new</span>';
     }
-    if (srs.isSuspended(c.id)) chips += '<span class="due-chip suspended-chip">put away</span>';
+    if (srs.isSuspended(c.id)) chips += '<span class="due-chip suspended-chip">parked</span>';
     if (mnemonicNote(c.id)) chips += '<span class="due-chip fs-mnem-chip">mnemonic</span>';
     return chips;
   }
