@@ -406,7 +406,7 @@ PGRE.formulaSearch = (function () {
     { key: 'mature', label: 'Mature' },
     { key: 'young', label: 'Young' },
     { key: 'leech', label: 'Keeps slipping' },
-    { key: 'away', label: 'Put away' },
+    { key: 'away', label: 'Parked' },
     { key: 'mnemonic', label: 'Has a mnemonic' }
   ];
   var STATUS_ALIAS = dict({ unseen: 'new', seen: 'learned', introduced: 'learned',

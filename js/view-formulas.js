@@ -235,7 +235,7 @@ PGRE.views.formulas = (function () {
     if (searchLoad) return searchLoad;
     searchLoad = new Promise(function (resolve) {
       var s = document.createElement('script');
-      s.src = 'js/formula-search.js?v=20261013a';
+      s.src = 'js/formula-search.js?v=20261105a';
       s.onload = function () { resolve(); };
       s.onerror = function () { searchLoad = null; searchFailed = true; resolve(); };
       document.head.appendChild(s);
@@ -1806,7 +1806,7 @@ PGRE.views.formulas = (function () {
     function statusText(c) {
       var st = srs.cardState(c.id);
       if (locked[c.id]) return locked[c.id] === 'again' ? 'again today' : 'done today';
-      if (srs.isSuspended(c.id)) return 'put away';
+      if (srs.isSuspended(c.id)) return 'parked';
       if (!st) return 'new';
       var du = srs.daysUntil(st.due);
       return du <= 0 ? 'due now' : 'due in ' + srs.ivlLabel(du);
@@ -1833,7 +1833,7 @@ PGRE.views.formulas = (function () {
           ? 'Due again today — stays in today’s list'
           : 'Already graded today';
       } else if (srs.isSuspended(id)) {
-        chips = '<span class="due-chip suspended-chip">put away</span>';
+        chips = '<span class="due-chip suspended-chip">parked</span>';
         note = 'No scheduled reviews';
       } else {
         var st = srs.cardState(id);
@@ -2748,7 +2748,7 @@ PGRE.views.formulas = (function () {
         // formula IS the prompt, and on book-list cards (kind 'list').
         (reverse || c.kind === 'list' ? '' : '<button class="btn btn-ghost" id="rebuild-btn">Rebuild hints</button>') +
         '<button class="btn btn-ghost" id="skip-btn">Skip</button>' +
-        '<button class="btn btn-ghost" id="putaway-btn">Put away</button>' +
+        '<button class="btn btn-ghost" id="putaway-btn">Park</button>' +
         similarButton(c, 'btn-sm') +
       '</div>' +
       '<div class="card-review-hist-wrap" hidden>' + reviewHistoryHTML(c.id) + '</div>' +
@@ -4460,6 +4460,23 @@ PGRE.views.formulas = (function () {
         softAddToToday([addBtn.getAttribute('data-fs-add')]);
         return;
       }
+      // Park / unpark the card in one click — the same suspendCard path the
+      // study session's Park uses, without entering a session.
+      var parkBtn = e.target.closest('[data-fs-park]');
+      if (parkBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        var parkId = parkBtn.getAttribute('data-fs-park');
+        if (parkId) {
+          if (PGRE.srs.isSuspended(parkId)) PGRE.srs.unsuspendCard(parkId);
+          else PGRE.srs.suspendCard(parkId);
+          PGRE.store.save();
+          // Re-run (not just re-render) so a status filter drops or picks up
+          // the row whose put-away flag just flipped.
+          runSearch(false);
+        }
+        return;
+      }
       // The revealed face is for reading, not a second toggle: collapsing the
       // card out from under the formula you are studying (or mid text-selection)
       // is never what was meant. The button and the prompt still flip it.
@@ -4618,7 +4635,7 @@ PGRE.views.formulas = (function () {
     } else {
       chips += '<span class="due-chip">new</span>';
     }
-    if (srs.isSuspended(c.id)) chips += '<span class="due-chip suspended-chip">put away</span>';
+    if (srs.isSuspended(c.id)) chips += '<span class="due-chip suspended-chip">parked</span>';
     if (mnemonicNote(c.id)) chips += '<span class="due-chip fs-mnem-chip">mnemonic</span>';
     return chips;
   }
@@ -4640,6 +4657,8 @@ PGRE.views.formulas = (function () {
     var modalAria = hasViz ? ' aria-haspopup="dialog"' : '';
     // The id is read straight back with getAttribute (never as a CSS selector),
     // so HTML-escaping is the only escaping it needs.
+    var parkCtrl = '<button type="button" class="btn btn-ghost btn-sm" data-fs-park="' +
+        ui.esc(c.id) + '">' + (PGRE.srs.isSuspended(c.id) ? 'Unpark' : 'Park') + '</button>';
     return '<article class="fs-card' + (open ? ' is-open' : '') +
         '" data-fsid="' + ui.esc(c.id) + '">' +
       '<div class="fs-card-head">' +
@@ -4658,7 +4677,7 @@ PGRE.views.formulas = (function () {
           '<button type="button" class="btn btn-ghost btn-sm fs-modal-btn" data-fs-modal="' +
             ui.esc(c.id) + '"' + modalAria + '>' + modalLabel + '</button>' +
           similarButton(c, 'btn-sm', true) +
-          addCtrl +
+          addCtrl + parkCtrl +
         '</span>' +
         '<span class="fs-chips">' + searchChipsHTML(c) + '</span>' +
       '</div>' +
