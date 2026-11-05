@@ -7,7 +7,7 @@ libraries are vendored, and the whole thing is plain HTML/CSS/JS with no build s
 ## Run it
 
 ```bash
-cd "/Users/Reid Hu/Physics GRE"
+cd "/Users/Reid Hu/Life Studio"
 python3 -m http.server 8000
 ```
 
