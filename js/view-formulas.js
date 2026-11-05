@@ -3002,9 +3002,12 @@ PGRE.views.formulas = (function () {
         '<span class="grade-top">' + g.label + ' <span class="key-hint">' + g.hint + '</span></span>' +
         '<span class="grade-ivl">' + lbl + '</span></button>';
     });
-    // The grade row replaces the whole action strip, so the similar-problem
-    // control is re-emitted here to stay visible after the reveal.
-    html += similarButton(c, 'btn-sm');
+    // The grade row replaces the whole action strip, so the Park and
+    // similar-problem controls are re-emitted here to stay visible after the
+    // reveal. Park runs the same putAwayCard as the front-side button: the card
+    // leaves the session ungraded and its SRS schedule is untouched.
+    html += '<button class="btn btn-ghost btn-sm" id="putaway-btn">Park</button>' +
+      similarButton(c, 'btn-sm');
     var box = document.getElementById('fcard-actions');
     box.innerHTML = html;
     var histWrap = body().querySelector('.card-review-hist-wrap');
@@ -3016,6 +3019,8 @@ PGRE.views.formulas = (function () {
         b.style.animationDelay = (i * 60) + 'ms';
       }
     });
+    var pa = document.getElementById('putaway-btn');
+    if (pa) pa.addEventListener('click', function (e) { e.stopPropagation(); putAwayCard(); });
     wireSimilar(box);
   }
 
