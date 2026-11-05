@@ -2748,7 +2748,7 @@ PGRE.views.formulas = (function () {
         // formula IS the prompt, and on book-list cards (kind 'list').
         (reverse || c.kind === 'list' ? '' : '<button class="btn btn-ghost" id="rebuild-btn">Rebuild hints</button>') +
         '<button class="btn btn-ghost" id="skip-btn">Skip</button>' +
-        '<button class="btn btn-ghost" id="putaway-btn">Put away</button>' +
+        '<button class="btn btn-ghost" id="putaway-btn">Park</button>' +
         similarButton(c, 'btn-sm') +
       '</div>' +
       '<div class="card-review-hist-wrap" hidden>' + reviewHistoryHTML(c.id) + '</div>' +
@@ -4461,7 +4461,7 @@ PGRE.views.formulas = (function () {
         return;
       }
       // Park / unpark the card in one click — the same suspendCard path the
-      // study session's Put away uses, without entering a session.
+      // study session's Park uses, without entering a session.
       var parkBtn = e.target.closest('[data-fs-park]');
       if (parkBtn) {
         e.preventDefault();
