@@ -1058,6 +1058,10 @@ PGRE.nav = (function () {
         trail.push({ label: 'Physics', href: '#/subject/physics' });
         trail.push({ label: 'History', href: '#/history' });
         trail.push({ label: 'Drill' });
+      } else if (view === 'wiki') {
+        var wp = PGRE.wikiPage ? PGRE.wikiPage(params.id) : null;
+        trail.push({ label: 'Wiki', href: '#/wiki/' + params.id });
+        trail.push({ label: wp ? wp.title : 'Wiki' });
       } else if (LABELS[view]) {
         if (PHYSICS_VIEWS[view]) trail.push({ label: 'Physics', href: '#/subject/physics' });
         trail.push({ label: LABELS[view], href: HREF[view] });
@@ -1120,6 +1124,7 @@ PGRE.route = function () {
   else if (parts[0] === 'library') { view = 'library'; }
   else if (parts[0] === 'settings') { view = 'settings'; }
   else if (parts[0] === 'exam') { view = 'exam'; }
+  else if (parts[0] === 'wiki' && parts[1]) { view = 'wiki'; params.id = parts[1]; }
   else if (parts[0] === 'subject' && parts[1]) {
     view = 'subject'; params.id = parts[1];
     params.sub = parts[2] || null; params.sub2 = parts[3] || null;
@@ -1229,6 +1234,7 @@ PGRE.setActiveNav = function (view, params) {
   else if (view === 'topic') key = 'practice';
   else if (view === 'practice') key = 'practice';
   else if (view === 'exam' || view === 'plan') key = 'exam';
+  else if (view === 'wiki') key = 'wiki-' + params.id;
 
   document.querySelectorAll('#sidebar a[data-nav]').forEach(function (a) {
     var k = a.getAttribute('data-nav');
@@ -1264,6 +1270,7 @@ PGRE.buildNav = function () {
     top: 'Now',
     subjects: 'Subjects',
     studio: 'Studio',
+    wiki: 'Wiki',
     topics: 'Physics'   // sidebar search groups portal hits under the subject
   };
   var renderItem = function (item) {
@@ -1292,6 +1299,10 @@ PGRE.buildNav = function () {
     return '<a href="' + l[0] + '" data-nav="' + l[1] + '">' +
       '<span class="nav-label">' + l[2] + '</span>' + badge + '</a>';
   }).join('');
+
+  var wikiItems = (PGRE.WIKI_PAGES || []).map(function (p) {
+    return { href: '#/wiki/' + p.id, key: 'wiki-' + p.id, label: p.title, icon: 'book' };
+  });
   var subjectItems = (PGRE.SUBJECTS || []).map(function (s) {
     var row = '<a href="#/subject/' + s.id + '" data-nav="subject-' + s.id + '">' +
       '<span class="nav-mono">' + s.code + '</span>' +
@@ -1305,6 +1316,7 @@ PGRE.buildNav = function () {
   var html = '<div class="nav-tree">' +
     items.top.map(renderItem).join('') +
     renderGroup('subjects', subjectItems) +
+    renderGroup('wiki', wikiItems.map(renderItem).join('')) +
     renderGroup('studio', items.studio.map(renderItem).join('')) +
     '</div>';
   el.innerHTML = html;
@@ -1317,7 +1329,7 @@ PGRE.buildNav = function () {
     subjects: (PGRE.SUBJECTS || []).map(function (s) {
       return { href: '#/subject/' + s.id, key: 'subject-' + s.id, label: s.name, icon: null };
     }),
-    studio: items.studio.concat([
+    studio: items.studio.concat(wikiItems.concat([
       { href: '#/practice/all', key: 'practice', label: 'Practice', icon: 'play' },
       { href: '#/mistakes', key: 'mistakes', label: 'Mistake book', icon: 'mistake' },
       { href: '#/history', key: 'history', label: 'History', icon: 'history' },
@@ -1330,9 +1342,10 @@ PGRE.buildNav = function () {
       { href: '#/library', key: 'library', label: 'Library', icon: 'folder' },
       { href: '#/search', key: 'search', label: 'Search', icon: 'search' },
       { href: '#/settings', key: 'settings', label: 'Settings', icon: 'gear' }
-    ])
+    ])),
+    wiki: wikiItems
   };
-  var pageLabels = { top: 'Now', subjects: 'Subjects', studio: 'Studio', topics: 'Physics' };
+  var pageLabels = { top: 'Now', subjects: 'Subjects', studio: 'Studio', wiki: 'Wiki', topics: 'Physics' };
   if (PGRE.sidebarSearch) PGRE.sidebarSearch.mount(pages, pageLabels);
 };
 
