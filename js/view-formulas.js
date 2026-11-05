@@ -4460,6 +4460,23 @@ PGRE.views.formulas = (function () {
         softAddToToday([addBtn.getAttribute('data-fs-add')]);
         return;
       }
+      // Park / unpark the card in one click — the same suspendCard path the
+      // study session's Put away uses, without entering a session.
+      var parkBtn = e.target.closest('[data-fs-park]');
+      if (parkBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        var parkId = parkBtn.getAttribute('data-fs-park');
+        if (parkId) {
+          if (PGRE.srs.isSuspended(parkId)) PGRE.srs.unsuspendCard(parkId);
+          else PGRE.srs.suspendCard(parkId);
+          PGRE.store.save();
+          // Re-run (not just re-render) so a status filter drops or picks up
+          // the row whose put-away flag just flipped.
+          runSearch(false);
+        }
+        return;
+      }
       // The revealed face is for reading, not a second toggle: collapsing the
       // card out from under the formula you are studying (or mid text-selection)
       // is never what was meant. The button and the prompt still flip it.
@@ -4640,6 +4657,8 @@ PGRE.views.formulas = (function () {
     var modalAria = hasViz ? ' aria-haspopup="dialog"' : '';
     // The id is read straight back with getAttribute (never as a CSS selector),
     // so HTML-escaping is the only escaping it needs.
+    var parkCtrl = '<button type="button" class="btn btn-ghost btn-sm" data-fs-park="' +
+        ui.esc(c.id) + '">' + (PGRE.srs.isSuspended(c.id) ? 'Unpark' : 'Park') + '</button>';
     return '<article class="fs-card' + (open ? ' is-open' : '') +
         '" data-fsid="' + ui.esc(c.id) + '">' +
       '<div class="fs-card-head">' +
@@ -4658,7 +4677,7 @@ PGRE.views.formulas = (function () {
           '<button type="button" class="btn btn-ghost btn-sm fs-modal-btn" data-fs-modal="' +
             ui.esc(c.id) + '"' + modalAria + '>' + modalLabel + '</button>' +
           similarButton(c, 'btn-sm', true) +
-          addCtrl +
+          addCtrl + parkCtrl +
         '</span>' +
         '<span class="fs-chips">' + searchChipsHTML(c) + '</span>' +
       '</div>' +
