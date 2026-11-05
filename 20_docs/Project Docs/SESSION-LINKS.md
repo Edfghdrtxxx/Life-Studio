@@ -62,8 +62,8 @@ PGRE.SESSION_LABELS[normalE] = 'Boundary condition on normal $E$';  // optional
 | Supplementary cards `supp-*` | `js/data-formulas.js` (`PGRE.FORMULAS`) |
 
 `content/bank/` is gitignored, so a worktree does not have it. Read it from the
-learner's live checkout `/Users/Reid Hu/Physics GRE/content/bank/`, read-only.
-Never write to `/Users/Reid Hu/Physics GRE`, and never commit `content/bank/`.
+learner's live checkout `/Users/Reid Hu/Life Studio/content/bank/`, read-only.
+Never write to `/Users/Reid Hu/Life Studio`, and never commit `content/bank/`.
 
 A learning session often creates a `supp-*` card in the live checkout's
 `js/data-formulas.js` before that card is committed. Link a `supp-*` card only
@@ -118,7 +118,7 @@ recall. Precision beats recall; a wrong link is worse than a missing one.
    node -e '
    const fs = require("fs"), vm = require("vm");
    const ctx = { window: {} }; ctx.PGRE = ctx.window.PGRE = {}; vm.createContext(ctx);
-   const live = "/Users/Reid Hu/Physics GRE/";
+   const live = "/Users/Reid Hu/Life Studio/";
    for (const f of ["content/bank/cpg-formulas.js", "js/data-formulas.js", "content/bank/cpg-lists.js"])
      vm.runInContext(fs.readFileSync(live + f, "utf8"), ctx);
    const P = ctx.PGRE, out = [];
@@ -191,5 +191,5 @@ Checked on 2026-10-22; leave them out unless a new card covers them.
 - Never change a card's text, id, or schedule to make a link fit.
 - Never write to saved progress (`localStorage['pgre-state-v1']` on any origin)
   or open the learner's file:// Studio in an automated browser.
-- Never edit the OrbitOS vault or the live checkout `/Users/Reid Hu/Physics GRE`.
+- Never edit the OrbitOS vault or the live checkout `/Users/Reid Hu/Life Studio`.
 - Never commit `content/bank/` or card text.
