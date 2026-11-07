@@ -178,6 +178,80 @@ var series = byId['supp-hydrogen-series'];
 assert(!!series && /Lyman/.test(series.back) && /Balmer/.test(series.back) && /Paschen/.test(series.back),
   'the hydrogen series card names Lyman, Balmer, and Paschen');
 
+/* `braced` must be the back's leading $$…$$ formula itself with
+   \underbrace/\overbrace labels added — never a different expression
+   (AGENTS.md "Recall term explanations"; bracedBack in view-formulas.js
+   replaces that leading formula with `braced`). Strip each \underbrace{X}_{Y}
+   / \overbrace{X}^{Y} to its body X (recursively), drop cosmetic differences
+   the labelled rewrite is allowed to carry — spacing commands, \left/\right
+   sizing, \text{…} annotations, parenthesized remarks, single-atom braces —
+   and require the result to be a contiguous piece of the leading formula:
+   equal to it, or a substring (a braced card may label only one clause of a
+   multi-part formula, e.g. supp-dielectric-d-normal). */
+function braceGroupEnd(s, i) {
+  var d = 0;
+  for (; i < s.length; i++) {
+    if (s[i] === '\\') i++;
+    else if (s[i] === '{') d++;
+    else if (s[i] === '}' && !--d) return i + 1;
+  }
+  return i;
+}
+function braceArg(s, i) {
+  if (s[i] === '{') {
+    var e = braceGroupEnd(s, i);
+    return [s.slice(i + 1, e - 1), e];
+  }
+  return [s[i], i + 1];
+}
+function stripBraceLabels(s) {
+  var out = '', pos = 0;
+  var re = /\\(?:under|over)brace/g, m;
+  while ((m = re.exec(s))) {
+    out += s.slice(pos, m.index);
+    var arg = braceArg(s, m.index + m[0].length);
+    out += stripBraceLabels(arg[0]);
+    pos = arg[1];
+    if (s[pos] === '_' || s[pos] === '^') pos = braceArg(s, pos + 1)[1];
+    re.lastIndex = pos;
+  }
+  return out + s.slice(pos);
+}
+function stripTextGroups(s) {
+  var out = '', pos = 0;
+  var re = /\\text\s*\{/g, m;
+  while ((m = re.exec(s))) {
+    if (m.index && s[m.index - 1] === '\\') continue; // \\ line break + "text{", not \text
+    out += s.slice(pos, m.index);
+    pos = braceGroupEnd(s, m.index + m[0].length - 1);
+    re.lastIndex = pos;
+  }
+  return out + s.slice(pos);
+}
+function normBracedMath(s) {
+  s = stripTextGroups(s)
+    .replace(/\\[,;:!]/g, '')
+    .replace(/\\(?:q?quad|enspace|thinspace|medspace|thickspace|space)\b/g, '')
+    .replace(/\\(?:left|right|Big[gl]?|big[gl]?|Bigg[gl]?|bigg[gl]?)\b/g, '')
+    .replace(/\\[()]/g, '')
+    .replace(/\\\\/g, '')
+    .replace(/\\(?=\s|\()/g, '')
+    .replace(/\s+/g, '')
+    .replace(/\((.*?)\)/g, '$1');
+  var p;
+  do { p = s; s = s.replace(/\{(\\[A-Za-z]+|[A-Za-z0-9])\}/g, '$1'); } while (s !== p);
+  return s;
+}
+cards.forEach(function (c) {
+  if (!c.braced) return;
+  var lead = /^\s*\$\$([\s\S]*?)\$\$/.exec(c.back);
+  assert(!!lead, c.id + ' has braced, so its back starts with a $$…$$ formula');
+  if (lead) {
+    assert(normBracedMath(lead[1]).indexOf(normBracedMath(stripBraceLabels(c.braced))) !== -1,
+      c.id + ' braced is the back\'s leading formula with underbrace/overbrace labels');
+  }
+});
+
 var katex = require(path.join(root, 'vendor/katex/katex.min.js'));
 var DELIMS = [['$$', '$$', true], ['\\[', '\\]', true], ['$', '$', false], ['\\(', '\\)', false]];
 
