@@ -72,6 +72,10 @@
   /* De-coraled (see deviation 3): the selected/active/hover fill and the
      meter track are neutral cream, which is what keeps coral scarce. */
   --accent-tint: #e8e0d2;
+  /* The TODAY-run / due-badge text ribbon: a band that must read against
+     --ink-2/--ink type, which fills-only --accent can sit too close to in
+     muted palettes. Cream's coral clears it as-is. */
+  --today-ribbon: var(--accent);
   --accent-track: #e6dfd8;
   /* Status colours. The system specifies its status hues as glyphs
      inside dark cards; on cream they measure 2.3–4.6:1, so each is
@@ -5352,16 +5356,22 @@ a.today-learn:focus-visible { text-decoration: none; color: inherit; }
   line-height: 1;
   color: var(--ink-2);
 }
-/* Editorial text shimmer: coral ribbon on ink across TODAY + duration
+/* Editorial text shimmer: an accent ribbon on ink across TODAY + duration
    as one clip-text run. 2.2s linear, 200% size, peak at 50%. Both
    ends are ink so repeat-x tiles if a frame overshoots — no clip
-   holes. Gate: .has-time only. */
+   holes. Gate: .has-time only.
+   The band reads --today-ribbon, not --accent: --accent is a fills-only
+   token (≥3:1 on --surface, never small text), and in the muted light
+   themes it sits within ~20 luminance steps of --ink-2, which renders
+   the sweep invisible. Each theme block carries a ribbon value that
+   keeps the accent hue but clears a real luminance step from --ink-2;
+   tools/check-theme-contrast.js gates the pair. */
 @supports ((-webkit-background-clip: text) or (background-clip: text)) {
   .today-learn-run:has(.today-learn-time.has-time) {
     background-image: linear-gradient(105deg,
       var(--ink-2) 0%,
       var(--ink-2) 38%,
-      var(--accent) 50%,
+      var(--today-ribbon) 50%,
       var(--ink-2) 62%,
       var(--ink-2) 100%);
     background-size: 200% 100%;
@@ -6404,19 +6414,21 @@ button.btn-ok {
   text-transform: none;
   padding: 1px 7px;
 }
-/* Due badges carry the top bar's editorial text shimmer: a coral ribbon
+/* Due badges carry the top bar's editorial text shimmer: an accent ribbon
    crosses the ink label, then the label rests in plain ink. The pill does
    not move. Two background layers: the ribbon, clipped to the glyphs, and
    an empty one that keeps the pill's own colour on the whole box. The
    ribbon enters and leaves outside the label, so no frame cuts it.
-   PGRE.refreshNavBadges puts every badge on the same beat. */
+   PGRE.refreshNavBadges puts every badge on the same beat. The band reads
+   --today-ribbon for the same reason the TODAY run does: a muted theme's
+   fills-only --accent can sit too close to --ink for the sweep to read. */
 @media (prefers-reduced-motion: no-preference) {
   @supports ((-webkit-background-clip: text, border-box) or (background-clip: text, border-box)) {
     .nav-badge-due {
       background-image: linear-gradient(105deg,
         var(--ink) 0%,
         var(--ink) 42%,
-        var(--accent) 50%,
+        var(--today-ribbon) 50%,
         var(--ink) 58%,
         var(--ink) 100%), none;
       background-size: 300% 100%, auto;
@@ -7770,6 +7782,7 @@ body.sidebar-folded .topbar-arrow.sbs-open { display: inline-flex; }
   --ink: #faf9f5;                /* text-on-dark — on dark, "white" is cream (17.0:1) */
   --ink-2: #a09d96;              /* text-on-dark-soft / ink-300 (6.62:1) */
   --ink-3: #807d76;              /* EXT: a third on-dark step, ink-300 stepped down (4.36:1) */
+  --today-ribbon: var(--accent); /* coral on --ink-2 clears the step */
   --line: #33312d;               /* border-on-dark */
   --accent: #cc785c;             /* brand coral, unchanged from light (5.47:1 on --bg) */
   --accent-deep: #e0997d;        /* EXT: on dark, "deeper" moves toward cream (7.70:1) */
@@ -7826,6 +7839,7 @@ body.sidebar-folded .topbar-arrow.sbs-open { display: inline-flex; }
   --ink: #1a1b1c;                /* 15.95:1 on --surface */
   --ink-2: #565c61;              /* 6.27:1 on --surface */
   --ink-3: #6f757a;              /* 4.31:1 on --surface */
+  --today-ribbon: #60849c;       /* ink-blue lifted so the band reads against --ink-2 */
   --line: #dcd8cf;               /* border-hairline, neutral-cool */
   --accent: #2c4a58;             /* ink-blue — fills, borders, rings; never small text */
   --accent-deep: #223a46;        /* accent stepped toward ink — the TEXT form (11.02:1) */
@@ -7867,6 +7881,7 @@ body.sidebar-folded .topbar-arrow.sbs-open { display: inline-flex; }
   --ink: #141813;                /* green-black — 16.37:1 on --surface */
   --ink-2: #54604f;              /* 6.06:1 on --surface */
   --ink-3: #6e7966;              /* 4.17:1 on --surface — captions only */
+  --today-ribbon: #6f9a5a;       /* forest green lifted so the band reads against --ink-2 */
   --line: #d4d6c3;               /* border-hairline, mossed */
   --accent: #4a6f3e;             /* forest green — fills, borders, rings; never small text */
   --accent-deep: #355229;        /* accent stepped toward ink — the TEXT form (8.01:1) */
@@ -7907,6 +7922,7 @@ body.sidebar-folded .topbar-arrow.sbs-open { display: inline-flex; }
   --ink: #13161a;                /* blue-black — 16.60:1 on --surface */
   --ink-2: #4c5560;              /* 6.92:1 on --surface */
   --ink-3: #68727e;              /* 4.47:1 on --surface — captions only */
+  --today-ribbon: #5f8fc4;       /* steel blue lifted so the band reads against --ink-2 */
   --line: #d2d9e0;               /* border-hairline, blue-grey */
   --accent: #35618f;             /* steel blue — fills, borders, rings; never small text */
   --accent-deep: #25466b;        /* accent stepped toward ink — the TEXT form (8.87:1) */
@@ -7948,6 +7964,7 @@ body.sidebar-folded .topbar-arrow.sbs-open { display: inline-flex; }
   --ink: #eef1f7;                /* blue-tinted white — 16.31:1 on --floor, 14.19:1 on --surface */
   --ink-2: #a3aec4;              /* 8.27:1 on --floor, 7.19:1 on --surface */
   --ink-3: #7d89a0;              /* 4.56:1 on --surface */
+  --today-ribbon: var(--accent); /* gold on --ink-2 clears the step */
   --line: #2a3850;               /* border-on-dark */
   --accent: #e0a83c;             /* gold — fills, borders, rings; never small text (7.52:1) */
   --accent-deep: #f4d489;        /* on dark, "deeper" moves toward cream — the TEXT form (11.18:1) */
@@ -7989,6 +8006,7 @@ body.sidebar-folded .topbar-arrow.sbs-open { display: inline-flex; }
   --ink: #ecf4f4;                /* cyan-tinted white — 15.99:1 on --floor, 13.65:1 on --surface */
   --ink-2: #9cb8b6;              /* 8.45:1 on --floor, 7.22:1 on --surface */
   --ink-3: #7a9a97;              /* 5.00:1 on --surface */
+  --today-ribbon: var(--accent); /* cyan-green on --ink-2 clears the step */
   --line: #254244;               /* border-on-dark */
   --accent: #3fd6b5;             /* aurora cyan-green — fills only; never small text (8.34:1) */
   --accent-deep: #8be9d4;        /* accent moved toward cream — the TEXT form (10.67:1) */
@@ -8029,6 +8047,7 @@ body.sidebar-folded .topbar-arrow.sbs-open { display: inline-flex; }
   --ink: #1c1415;                /* plum-black — 16.57:1 on --surface */
   --ink-2: #5f5355;              /* 6.73:1 on --surface */
   --ink-3: #7a6d6f;              /* 4.53:1 on --surface — captions only */
+  --today-ribbon: #c75c81;       /* cranberry lifted so the band reads against --ink-2 */
   --line: #e3d5d3;               /* border-hairline, blushed */
   --accent: #a03a5c;             /* cranberry — fills, borders, rings; never small text */
   --accent-deep: #7a2a45;        /* accent stepped toward ink — the TEXT form (8.57:1) */

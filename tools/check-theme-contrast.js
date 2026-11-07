@@ -15,6 +15,11 @@
                      on own *-tint and on --surface    >= 4.5
      --accent        on --surface                      >= 3.0 (fills only)
      --on-accent     on --accent                       >= 4.5
+   --today-ribbon  vs --ink-2                        >= 60 RGB distance
+     (the shimmer band is a text ribbon: luminance ratio alone misses
+      its mechanism — warm-dark reads on chroma at 1.21:1 — so this
+      row measures Euclidean RGB distance; the muted accents that made
+      the sweep invisible measured 25-54).
 
    The six named themes (paper, sage, nordic, midnight, aurora, rose) are
    GATED: any miss exits nonzero. :root and dark are reference palettes
@@ -131,6 +136,9 @@ const PAIRS = [
   ['--amber', '--surface', 4.5],
   ['--accent', '--surface', 3.0],
   ['--on-accent', '--accent', 4.5],
+  // The TODAY-run/due-badge ribbon is a text band that must read against
+  // the ink it sweeps across; measured as RGB distance, not ratio.
+  ['--today-ribbon', '--ink-2', 60, 'dist'],
 ];
 
 const TOKENS = [
@@ -143,6 +151,7 @@ const TOKENS = [
   '--amber', '--amber-tint',
   '--heat-0', '--heat-1', '--heat-2', '--heat-3', '--heat-4', '--heat-edge',
   '--on-accent', '--btn-primary-hover', '--scrim', '--shadow',
+  '--today-ribbon',
 ];
 
 // Every palette that must exist, in display order; gated = exit-nonzero on miss.
@@ -186,7 +195,12 @@ const header = ['check'.padEnd(30), 'need'].concat(THEMES.map(t => t.name.padSta
 console.log(header);
 console.log('-'.repeat(header.length));
 
-for (const [fg, bg, need] of PAIRS) {
+function rgbDist(f, b) {
+  const A = hexToRgb(f), B = hexToRgb(b);
+  return Math.sqrt(A.reduce((s, v, i) => s + (v - B[i]) ** 2, 0));
+}
+
+for (const [fg, bg, need, kind] of PAIRS) {
   const label = `${fg} on ${bg}`.padEnd(30);
   const cells = THEMES.map(t => {
     if (!blocks[t.key]) return '       —  ';
@@ -198,10 +212,11 @@ for (const [fg, bg, need] of PAIRS) {
       if (t.gated) failures++;
       return '       ?  ';
     }
-    const r = ratio(f, b);
+    const r = kind === 'dist' ? rgbDist(f, b) : ratio(f, b);
     const ok = r >= need;
     if (!ok) {
-      const tag = `${t.name}: ${fg} ${f} on ${bg} ${b} = ${r.toFixed(2)}:1 < ${need}:1`;
+      const unit = kind === 'dist' ? ' RGB dist' : ':1';
+      const tag = `${t.name}: ${fg} ${f} on ${bg} ${b} = ${r.toFixed(2)}${unit} < ${need}${unit}`;
       if (t.gated) { problems.push(tag); failures++; }
       else problems.push(tag + ' [reference palette — reported only]');
     }
