@@ -937,7 +937,7 @@ PGRE.FORMULAS = [
     tag: "Nuclear physics",
     name: "Nuclide notation (supplemental)",
     front: "In the nuclide symbol ${}^{A}_{Z}X$, what do $X$, $Z$ and $A$ stand for, and how do you get the neutron number $N$?",
-    braced: "{\\,}_{\\underbrace{Z}_{\\substack{\\text{atomic number}\\\\\\text{(protons)}}}}^{\\overbrace{A}^{\\substack{\\text{mass number}\\\\\\text{(nucleons)}}}}\\underbrace{X}_{\\substack{\\text{element}\\\\\\text{symbol}}}",
+    braced: "\\underbrace{N}_{\\substack{\\text{neutron}\\\\\\text{number}}} = \\overbrace{A}^{\\substack{\\text{mass number}\\\\\\text{(nucleons)}}} - \\underbrace{Z}_{\\substack{\\text{atomic number}\\\\\\text{(protons)}}}",
     back: "$$N = A - Z$$<p class=\"card-key\"><strong>Upper left counts nucleons, lower left counts protons; their difference is the neutrons.</strong></p><ul class=\"recall-list\"><li><strong>$X$:</strong> the element's chemical symbol. It fixes $Z$, so the lower index is often left out, for example $^{14}\\mathrm{C}$.</li><li><strong>$Z$ (lower left):</strong> the atomic number, the number of protons, equal to the nuclear charge in units of $e$.</li><li><strong>$A$ (upper left):</strong> the mass number, the number of nucleons, $A = Z + N$.</li><li><strong>Example:</strong> $^{4}_{2}\\mathrm{He}$ has 2 protons and 2 neutrons.</li></ul>",
     note: "Supplemental — Kahn §8.1.2, p.147, names protons and neutrons together as nucleons and writes helium-4 as $^{4}_{2}\\mathrm{He}$, but does not define the notation."
   },
