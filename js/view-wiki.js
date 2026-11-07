@@ -45,6 +45,7 @@ PGRE.views.wiki = (function () {
     var cs = getComputedStyle(document.documentElement);
     return {
       type: 'studio-theme',
+      dark: document.documentElement.dataset.dark === '1',
       accent: (cs.getPropertyValue('--accent') || '').trim(),
       accentTint: (cs.getPropertyValue('--accent-tint') || '').trim(),
       accentDeep: (cs.getPropertyValue('--accent-deep') || '').trim()
@@ -69,7 +70,7 @@ PGRE.views.wiki = (function () {
       });
       themeObserver.observe(document.documentElement, {
         attributes: true,
-        attributeFilter: ['data-theme']
+        attributeFilter: ['data-theme', 'data-dark']
       });
     }
   }
