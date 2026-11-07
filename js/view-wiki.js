@@ -35,5 +35,44 @@ PGRE.views.wiki = (function () {
       '</div>';
   }
 
-  return { render: render };
+  /* The framed file cannot read our styles (two file:// pages cannot reach
+     each other's documents), so we post it the theme colours its own
+     highlight should use. A file:// frame's origin is "null", so the target
+     origin is '*'; the payload holds only public colour values. */
+  var themeObserver = null;
+
+  function themeMessage() {
+    var cs = getComputedStyle(document.documentElement);
+    return {
+      type: 'studio-theme',
+      accent: (cs.getPropertyValue('--accent') || '').trim(),
+      accentTint: (cs.getPropertyValue('--accent-tint') || '').trim(),
+      accentDeep: (cs.getPropertyValue('--accent-deep') || '').trim()
+    };
+  }
+
+  function sendTheme(iframe) {
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage(themeMessage(), '*');
+    }
+  }
+
+  function mount() {
+    if (themeObserver) { themeObserver.disconnect(); themeObserver = null; }
+    var iframe = document.querySelector('.wiki-iframe');
+    if (!iframe) return;
+    iframe.addEventListener('load', function () { sendTheme(iframe); });
+    if (window.MutationObserver) {
+      themeObserver = new MutationObserver(function () {
+        if (!iframe.isConnected) { themeObserver.disconnect(); themeObserver = null; return; }
+        sendTheme(iframe);
+      });
+      themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-theme']
+      });
+    }
+  }
+
+  return { render: render, mount: mount };
 })();
