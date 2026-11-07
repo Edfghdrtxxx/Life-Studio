@@ -138,7 +138,7 @@
 }
 .sidebar-foot-link:hover { background: var(--ivory); color: var(--ink); }
 .sidebar-foot-link.active { background: var(--accent-tint); color: var(--accent-deep); }
-#theme-toggle { flex: none; }
+#theme-toggle { flex: 1; }
 
 /* ——— Page chrome: kicker/display type/section titles ——— */
 .h1 {
