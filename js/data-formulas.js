@@ -931,6 +931,17 @@ PGRE.FORMULAS = [
     note: "Supplemental — Kahn §4.2.6, p.85, lists the four steps; the signs are supplemental. $Q$ is the heat into the gas, $W$ the work done by the gas, $\\Delta U = Q - W$. Why the expansion is at $T_H$: on an isotherm $\\Delta U = 0$, so $Q = W$, and the gas takes in heat only while it expands. Why every step is reversible: heat crosses only an infinitesimal temperature difference, because the adiabats carry the gas between $T_H$ and $T_C$ with no heat; gas at $T_H$ put straight onto the reservoir at $T_C$ would be irreversible. Trap: $\\delta Q = C\\,dT$ gives $Q = 0$ on an isotherm, so it does not apply there.<img class=\"q-fig\" src=\"content/book-assets/carnot-ts-rectangle.svg\" alt=\"Carnot cycle on a T–S diagram: the area under the bottom edge is the cold-side heat, the enclosed rectangle is the work, the area under the top edge is the hot-side heat; clockwise is an engine, counterclockwise a refrigerator, air conditioner or heat pump\">"
   },
   {
+    id: "supp-nuclide-notation",
+    eq: "supp",
+    topic: "sp",
+    tag: "Nuclear physics",
+    name: "Nuclide notation (supplemental)",
+    front: "In the nuclide symbol ${}^{A}_{Z}X$, what do $X$, $Z$ and $A$ stand for, and how do you get the neutron number $N$?",
+    braced: "\\underbrace{N}_{\\substack{\\text{neutron}\\\\\\text{number}}} = \\overbrace{A}^{\\substack{\\text{mass number}\\\\\\text{(nucleons)}}} - \\underbrace{Z}_{\\substack{\\text{atomic number}\\\\\\text{(protons)}}}",
+    back: "$$N = A - Z$$<p class=\"card-key\"><strong>Upper left counts nucleons, lower left counts protons; their difference is the neutrons.</strong></p><ul class=\"recall-list\"><li><strong>$X$:</strong> the element's chemical symbol. It fixes $Z$, so the lower index is often left out, for example $^{14}\\mathrm{C}$.</li><li><strong>$Z$ (lower left):</strong> the atomic number, the number of protons, equal to the nuclear charge in units of $e$.</li><li><strong>$A$ (upper left):</strong> the mass number, the number of nucleons, $A = Z + N$.</li><li><strong>Example:</strong> $^{4}_{2}\\mathrm{He}$ has 2 protons and 2 neutrons.</li></ul>",
+    note: "Supplemental — Kahn §8.1.2, p.147, names protons and neutrons together as nucleons and writes helium-4 as $^{4}_{2}\\mathrm{He}$, but does not define the notation."
+  },
+  {
     id: "supp-decay-bookkeeping",
     eq: "supp",
     topic: "sp",
