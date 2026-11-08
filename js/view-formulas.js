@@ -182,7 +182,10 @@ PGRE.views.formulas = (function () {
   function deckById(id) {
     var pool = (deck && deck.length) ? deck : ((PGRE.deck && PGRE.deck.length) ? PGRE.deck : (PGRE.FORMULAS || []));
     for (var i = 0; i < pool.length; i++) if (pool[i] && pool[i].id === id) return pool[i];
-    return null;
+    // The loaded pool can be stale: a card saved (or adopted from a sibling
+    // tab) after the last deck read is not in it, but its live record is
+    // still a real card this page must show.
+    return (PGRE.srs && PGRE.srs.liveUserCard) ? PGRE.srs.liveUserCard(id) : null;
   }
 
   /* ——— F2 mnemonic notes (state.cardNotes: id -> { text, updatedAt }) ——— */
