@@ -38,12 +38,23 @@ PGRE.views.settings = (function () {
     (PGRE.THEMES || []).forEach(function (t) {
       swatches += swatchHTML(t, t.id === current);
     });
+    var w = PGRE.store.state.settings.pageWidth || 1040;
     return '<div class="card" id="set-appearance"><span class="kicker">Appearance</span>' +
       '<h2>Theme</h2>' +
       '<p class="muted">Applies at once and is remembered in this browser. The sidebar ' +
       '“Light / dark” button flips between your light theme and Warm dark.</p>' +
       '<div class="theme-grid" id="theme-grid">' + swatches + '</div>' +
-      keyNote('theme') + '</div>';
+      keyNote('theme') +
+      '<div class="set-row"><div><b style="font-weight:500">Page width</b>' +
+        '<div class="d">The content column on every page. Narrower is easier to scan; ' +
+        'wider fits more on one line. A small window always fits the window.</div>' +
+        keyNote('pageWidth') + '</div>' +
+        '<div class="width-ctl">' +
+          '<input type="range" id="page-w" min="760" max="1600" step="20" value="' + w + '"' +
+            ' aria-label="Page width in pixels">' +
+          '<b id="page-w-val">' + w + ' px</b>' +
+        '</div></div>' +
+      '</div>';
   }
 
   /* ——— Study ——— */
@@ -231,6 +242,21 @@ PGRE.views.settings = (function () {
         });
       });
     });
+
+    var slider = document.getElementById('page-w');
+    if (slider) {
+      var wVal = document.getElementById('page-w-val');
+      slider.addEventListener('input', function () {
+        // Live while dragging; the write lands on 'change' (release).
+        var px = parseInt(slider.value, 10);
+        PGRE.applyPageWidth(px);
+        if (wVal) wVal.textContent = px + ' px';
+      });
+      slider.addEventListener('change', function () {
+        PGRE.store.state.settings.pageWidth = parseInt(slider.value, 10);
+        PGRE.store.save();
+      });
+    }
   }
 
   function wireStudy() {
@@ -319,6 +345,7 @@ PGRE.views.settings = (function () {
               return;
             }
             PGRE.applyTheme(PGRE.store.state.settings.theme);
+            PGRE.applyPageWidth(PGRE.store.state.settings.pageWidth);
             PGRE.toast('Progress restored.', 'info');
             PGRE.route();
           } catch (e) {
@@ -338,6 +365,7 @@ PGRE.views.settings = (function () {
         PGRE.toast('Backup loaded into this tab, but saving still fails — it is not on disk yet.', 'error', true);
       } else if (ok) {
         PGRE.applyTheme(PGRE.store.state.settings.theme);
+        PGRE.applyPageWidth(PGRE.store.state.settings.pageWidth);
         PGRE.toast('Backup restored.', 'info');
         location.hash = '#/';
       } else {
@@ -384,6 +412,7 @@ PGRE.views.settings = (function () {
         } else if (what === 'all') {
           PGRE.store.reset();
           PGRE.applyTheme(PGRE.store.state.settings.theme);
+          PGRE.applyPageWidth(PGRE.store.state.settings.pageWidth);
           PGRE.toast('Progress reset.', 'info');
           PGRE.route();
         }

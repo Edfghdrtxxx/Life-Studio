@@ -367,7 +367,7 @@ body.sidebar-folded .topbar-brand { display: inline-flex; }
 
 /* ——— Main ——— */
 #main { flex: 1; min-width: 0; background: var(--floor); }
-#view { max-width: 1040px; margin: 0 auto; padding: 36px 40px 80px; }
+#view { max-width: var(--page-w, 1040px); margin: 0 auto; padding: 36px 40px 80px; }
 
 /* ——— Finder-style breadcrumb top bar (BUNDLE G) ———
    Slim sticky bar at the top of #main, present on every route: ◀ ▶ history
@@ -383,7 +383,7 @@ body.sidebar-folded .topbar-brand { display: inline-flex; }
   border-bottom: 1px solid var(--line);
 }
 .topbar-inner {
-  max-width: 1040px;
+  max-width: var(--page-w, 1040px);
   margin: 0 auto;
   padding: 8px 40px;
   display: flex;
