@@ -868,6 +868,24 @@ PGRE.srs = {
     return !!(status && status.partial);
   },
 
+  /* The live user-card record for an id, or null. state.userCards is an
+     always-complete deck source read from the store at call time, unlike
+     the deck snapshot a caller passes — a view keeps its loaded list
+     between reads, so a card saved (in this tab or adopted from a
+     sibling) after that read is absent from the list although the store
+     already holds it. A tombstoned id is dead (js/store.js merge rules);
+     a record whose updatedAt postdates its tombstone is a re-add. */
+  liveUserCard: function (id) {
+    if (!id) return null;
+    var s = PGRE.store.state;
+    var rec = s && s.userCards && s.userCards[id];
+    if (!rec || typeof rec !== 'object') return null;
+    var tom = s.tombstones && s.tombstones.userCards &&
+      s.tombstones.userCards[id];
+    if (tom && !(String(rec.updatedAt || '') > tom)) return null;
+    return rec;
+  },
+
   /* In-place reconcile of the persistent batch; returns whether anything
      changed (so the caller only persists on a real edit). The batch is fully
      user-curated: reconcile only prunes — it never adds or re-fills. */
@@ -883,7 +901,11 @@ PGRE.srs = {
     }
 
     function inDeck(id) {
-      return Object.prototype.hasOwnProperty.call(byId, id);
+      // A live user card counts as present: state.userCards is an always-
+      // complete source read now, while `deck` may be a stale view snapshot
+      // from before the card was saved (or adopted from a sibling tab).
+      return Object.prototype.hasOwnProperty.call(byId, id) ||
+        !!self.liveUserCard(id);
     }
     function isSusp(id) {
       return !!(susp && Object.prototype.hasOwnProperty.call(susp, id) && susp[id]);
@@ -930,7 +952,7 @@ PGRE.srs = {
       return !!(st && st.softHold);
     }
     function drop(id) {
-      if (!inDeck(id)) return !partial;
+      if (!inDeck(id)) return !partial;   // truly gone: drop unless partial
       if (isSusp(id)) return true;
       var st = self.cardState(id);
       // A soft hold is the pin the shipped Undo snapshot still carries.
@@ -1297,6 +1319,7 @@ PGRE.srs = {
     var out = [];
     batch.reviewIds.concat(batch.newIds).forEach(function (id) {
       var c = byId[id];
+      if (!c) c = self.liveUserCard(id);   // saved after this deck read
       if (!c) return;
       var st = self.cardState(id);
       if (!st || st.due <= t ||
