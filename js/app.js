@@ -1463,6 +1463,16 @@ PGRE.setTheme = function (t) {
   PGRE.applyTheme(id);
 };
 
+/* Content column width (Settings › Appearance): one --page-w custom property
+   feeds both the #view and .topbar-inner max-width rules in css/style.css.
+   Default 1040px matches the old fixed value; a window narrower than the
+   saved width still fits because max-width only caps the column. */
+PGRE.applyPageWidth = function (w) {
+  var px = parseInt(w, 10);
+  if (!(px >= 760 && px <= 1600)) px = 1040;
+  document.documentElement.style.setProperty('--page-w', px + 'px');
+};
+
 /* The store is origin-scoped: file://, localhost, and 127.0.0.1 are separate
    profiles. Keep the active profile visible so an empty store cannot look like
    lost progress after switching launch methods. */
@@ -1505,6 +1515,7 @@ PGRE.boot = function () {
       '. Restore from Library if this looks wrong.', 'error', true);
   }
   PGRE.applyTheme(PGRE.store.state.settings.theme);
+  PGRE.applyPageWidth(PGRE.store.state.settings.pageWidth);
   PGRE.ensureSidebarScrim();
   PGRE.applySidebar(PGRE.store.state.settings.sidebarFolded);
   var sbToggle = document.getElementById('sidebar-toggle');

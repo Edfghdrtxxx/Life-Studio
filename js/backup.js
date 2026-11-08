@@ -449,6 +449,7 @@ PGRE.backup = (function () {
           return;
         }
         if (PGRE.applyTheme) PGRE.applyTheme(PGRE.store.state.settings.theme);
+        if (PGRE.applyPageWidth) PGRE.applyPageWidth(PGRE.store.state.settings.pageWidth);
         if (PGRE.toast) PGRE.toast('Progress restored.', 'info');
         location.hash = '#/';
         if (PGRE.route) PGRE.route();

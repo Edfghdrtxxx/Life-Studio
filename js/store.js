@@ -114,8 +114,10 @@ PGRE.store = {
                   // just focus. 0 = off (editor only, no meter). Default 120;
                   // migrate() backfills the key on older saves via the nested
                   // settings pass.
-                  dailyTargetMin: 120 },
-
+                  dailyTargetMin: 120,
+                  // Settings › Appearance page-width slider (760–1600 px;
+                  // css/style.css --page-w). migrate() backfills on old saves.
+                  pageWidth: 1040 },
       // today's progressive formula batch (js/srs.js): rebuilt when the date
       // rolls over — { date, reviewIds: [], newIds: [] }
       formulaDay: null,
